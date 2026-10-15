@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Purchase Orders</title></head>
+<body>
+    <h1>My Purchase Orders</h1>
+    <p><a href="{% url 'provider_dashboard' %}">Provider dashboard</a> | <a href="{% url 'purchase_order_create' %}">Create purchase order</a></p>
+    {% if orders %}
+    <table>
+        <thead><tr><th>PO</th><th>Supplier</th><th>Created</th><th>Status</th><th>Total</th></tr></thead>
+        <tbody>{% for order in orders %}<tr>
+            <td><a href="{% url 'purchase_order_detail' order.po_id %}">PO {{ order.po_id }}</a></td>
+            <td>{{ order.supplier.business_name }}</td><td>{{ order.created_at }}</td>
+            <td>{{ order.status }}</td><td>{{ order.total_amount }}</td>
+        </tr>{% endfor %}</tbody>
+    </table>
+    {% else %}<p>You have not created any purchase orders.</p>{% endif %}
+</body>
+</html>

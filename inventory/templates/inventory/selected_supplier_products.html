@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supplier Products</title>
+</head>
+<body>
+
+<h1>My Selected Supplier</h1>
+
+<a href="{% url 'provider_dashboard' %}">
+    Back to Dashboard
+</a>
+
+<hr>
+
+<h2>{{ selected_supplier.supplier.business_name }}</h2>
+
+<p>
+    These are the products provided by your selected supplier.
+</p>
+
+<hr>
+
+{% if products %}
+
+<table border="1">
+
+    <tr>
+        <th>Product</th>
+        <th>Category</th>
+        <th>Unit</th>
+        <th>Price</th>
+        <th>Available Stock</th>
+    </tr>
+
+    {% for product in products %}
+
+    <tr>
+        <td>{{ product.item.name }}</td>
+        <td>{{ product.item.category }}</td>
+        <td>{{ product.item.unit }}</td>
+        <td>RM {{ product.price }}</td>
+        <td>{{ product.stock }}</td>
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+{% else %}
+
+<p>This supplier currently has no active products.</p>
+
+{% endif %}
+
+</body>
+</html>

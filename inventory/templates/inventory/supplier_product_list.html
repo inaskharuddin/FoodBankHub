@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Products</title>
+</head>
+<body>
+
+<h1>My Products</h1>
+
+<a href="{% url 'supplier_dashboard' %}">Back to Dashboard</a>
+<br><br>
+
+<a href="{% url 'supplier_product_add' %}">
+    <button>Add Product</button>
+</a>
+<hr>
+
+{% if products %}
+
+<table border="1">
+
+    <tr>
+        <th>Item</th>
+        <th>Category</th>
+        <th>Unit</th>
+        <th>Price</th>
+        <th>Stock</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    {% for product in products %}
+
+    <tr>
+        <td>{{ product.item.name }}</td>
+        <td>{{ product.item.category }}</td>
+        <td>{{ product.item.unit }}</td>
+        <td>RM {{ product.price }}</td>
+        <td>{{ product.stock }}</td>
+        <td>{{ product.status }}</td>
+
+        <td>
+            <a href="{% url 'supplier_product_edit' product.product_id %}">Edit</a> |
+            <a href="{% url 'supplier_product_delete' product.product_id %}">Delete</a>
+        </td>
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+{% else %}
+
+<p>You have no products yet.</p>
+
+{% endif %}
+
+</body>
+</html>

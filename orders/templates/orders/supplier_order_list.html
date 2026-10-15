@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>Supplier Orders</title></head>
+<body>
+    <h1>Purchase Orders for {{ request.user.supplier_profile.business_name }}</h1>
+    <p><a href="{% url 'supplier_dashboard' %}">Supplier dashboard</a></p>
+    {% for order in orders %}
+        <section>
+            <h2>PO {{ order.po_id }} — {{ order.get_status_display|default:order.status }}</h2>
+            <p>Provider: {{ order.provider.food_bank_name }} ({{ order.provider.user.name }})</p>
+            <p>Total: {{ order.total_amount }} | Created: {{ order.created_at }}</p>
+            <table>
+                <thead><tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Subtotal</th></tr></thead>
+                <tbody>{% for item in order.items.all %}<tr>
+                    <td>{{ item.product.item.name }}</td><td>{{ item.quantity }}</td>
+                    <td>{{ item.price }}</td><td>{{ item.subtotal }}</td>
+                </tr>{% endfor %}</tbody>
+            </table>
+            <p>Status: {{ order.status }}</p>
+            {% if order.status == "PENDING" %}
+                <form method="post" action="{% url 'supplier_update_order_status' order.po_id %}">{% csrf_token %}<input type="hidden" name="action" value="accept"><button type="submit">Accept order</button></form>
+            {% elif order.status == "ACCEPTED" %}
+                <form method="post" action="{% url 'supplier_update_order_status' order.po_id %}">{% csrf_token %}<input type="hidden" name="action" value="ship"><button type="submit">Mark shipped</button></form>
+            {% elif order.status == "SHIPPED" %}
+                <form method="post" action="{% url 'supplier_update_order_status' order.po_id %}">{% csrf_token %}<input type="hidden" name="action" value="mark-delivered"><button type="submit">Mark delivered</button></form>
+            {% endif %}
+        </section>
+    {% empty %}<p>No purchase orders have been sent to you.</p>{% endfor %}
+</body>
+</html>

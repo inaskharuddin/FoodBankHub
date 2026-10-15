@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Inventory</title>
+</head>
+<body>
+
+<h1>Edit Inventory</h1>
+
+<a href="{% url 'inventory_list' %}">Back to Inventory</a>
+
+<hr>
+
+<p>
+    <strong>Item:</strong>
+    {{ inventory.item.name }}
+</p>
+
+<p>
+    <strong>Unit:</strong>
+    {{ inventory.item.unit }}
+</p>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <label>Quantity:</label>
+    <input
+        type="number"
+        name="quantity"
+        value="{{ inventory.quantity }}"
+        min="0"
+        required
+    >
+
+    <br><br>
+
+    <button type="submit">Update Inventory</button>
+</form>
+
+</body>
+</html>

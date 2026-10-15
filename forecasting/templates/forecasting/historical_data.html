@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Historical demand data</title></head>
+<body>
+<h1>Historical Data</h1>
+<p>Supplier: {{ supplier_relationship.supplier.business_name }}. Only active products from this supplier are available.</p>
+{% if messages %}{% for message in messages %}<p role="status">{{ message }}</p>{% endfor %}{% endif %}
+<h2>Upload actual demand (CSV)</h2>
+<p>Use columns <code>product_id,date,quantity</code>, with dates as YYYY-MM-DD. Product IDs are listed below.</p>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}<input type="hidden" name="action" value="upload_actual">
+  <label>CSV file <input type="file" name="csv_file" accept=".csv,text/csv" required></label>
+  <button type="submit">Upload actual data</button>
+</form>
+<h2>Enter an estimated three-month baseline</h2>
+<p>Estimates are saved as monthly records. Actual data uploaded for a month replaces that month’s estimates for the same product.</p>
+<form method="post">
+  {% csrf_token %}<input type="hidden" name="action" value="save_estimates">
+  <table>
+    <thead><tr><th>Product</th><th>Product ID</th>{% for month,label in months %}<th>{{ label }} ({{ month|date:"M Y" }})</th>{% endfor %}</tr></thead>
+    <tbody>{% for product in products %}<tr>
+      <td>{{ product.item.name }} ({{ product.item.unit }})</td><td>{{ product.product_id }}</td>
+      {% for month,label in months %}<td><input type="number" min="0" step="1" name="month_{{ forloop.counter }}_{{ product.product_id }}" required></td>{% endfor %}
+    </tr>{% endfor %}</tbody>
+  </table>
+  <button type="submit">Save estimated baseline</button>
+</form>
+<h2>Saved historical records</h2>
+{% if history %}<table><thead><tr><th>Date</th><th>Product</th><th>Quantity</th><th>Source</th><th>Supplier</th></tr></thead><tbody>
+{% for record in history %}<tr><td>{{ record.date }}</td><td>{{ record.item.name }}</td><td>{{ record.quantity }}</td><td>{{ record.get_source_display }}</td><td>{{ record.supplier.business_name|default:"Legacy / unknown" }}</td></tr>{% endfor %}
+</tbody></table>{% else %}<p>No historical records yet.</p>{% endif %}
+<p><a href="{% url 'provider_dashboard' %}">Return to dashboard</a></p>
+</body></html>

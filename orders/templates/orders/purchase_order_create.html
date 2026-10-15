@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><title>Create Purchase Order</title></head>
+<body>
+    <h1>Create Purchase Order</h1>
+    <p><a href="{% url 'purchase_order_list' %}">Back to purchase orders</a></p>
+    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+    {% if products %}
+    <form method="post">
+        {% csrf_token %}
+        <table>
+            <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Quantity</th></tr></thead>
+            <tbody>
+            {% for product in products %}
+                <tr>
+                    <td>{{ product.item.name }}</td>
+                    <td>{{ product.price }}</td>
+                    <td>{{ product.stock }}</td>
+                    <td><input type="number" name="quantity_{{ product.product_id }}" min="0" max="{{ product.stock }}" value="0"></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">Create purchase order</button>
+    </form>
+    {% else %}<p>No active products are available from your selected supplier.</p>{% endif %}
+</body>
+</html>
+

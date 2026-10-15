@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <h1>Provider Dashboard</h1>
+
+    <p>Welcome to the Provider Dashboard.</p>
+
+    <p>
+        <a href="{% url 'inventory_list' %}">My Inventory</a>
+    </p>
+
+    <p>
+        <a href="{% url 'purchase_order_list' %}">Purchase Orders</a>
+    </p>
+
+    <p>
+        <a href="{% url 'historical_data' %}">
+            Historical Data / Upload Existing Data
+        </a>
+    </p>
+
+    <p>
+        <a href="{% url 'view_forecast' %}">View Forecast</a>
+    </p>
+
+    <p>
+        <a href="{% url 'low_stock_alerts' %}">Low Stock Alerts</a>
+    </p>
+
+    <p>
+        <a href="{% url 'logout' %}">Logout</a>
+    </p>
+
+</html>
+
+

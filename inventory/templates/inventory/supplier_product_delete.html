@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Product</title>
+</head>
+<body>
+
+<h1>Delete Product</h1>
+
+<p>
+    Are you sure you want to delete:
+    <strong>{{ product.item.name }}</strong>?
+</p>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <button type="submit">Yes, Delete</button>
+
+    <a href="{% url 'supplier_product_list' %}">
+        Cancel
+    </a>
+</form>
+
+</body>
+</html>

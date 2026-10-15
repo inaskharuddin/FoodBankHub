@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Product</title>
+</head>
+<body>
+
+<h1>Edit Product</h1>
+
+<a href="{% url 'supplier_product_list' %}">
+    Back to My Products
+</a>
+
+<hr>
+
+<p>
+    <strong>Product:</strong>
+    {{ product.item.name }}
+</p>
+
+<p>
+    <strong>Category:</strong>
+    {{ product.item.category }}
+</p>
+
+<p>
+    <strong>Unit:</strong>
+    {{ product.item.unit }}
+</p>
+
+<form method="POST">
+
+    {% csrf_token %}
+
+    <label>Price:</label>
+    <input
+        type="number"
+        name="price"
+        value="{{ product.price }}"
+        step="0.01"
+        min="0"
+        required
+    >
+
+    <br><br>
+
+    <label>Stock:</label>
+    <input
+        type="number"
+        name="stock"
+        value="{{ product.stock }}"
+        min="0"
+        required
+    >
+
+    <br><br>
+
+    <label>Status:</label>
+
+    <select name="status">
+
+        <option value="ACTIVE"
+            {% if product.status == "ACTIVE" %}selected{% endif %}>
+            Active
+        </option>
+
+        <option value="INACTIVE"
+            {% if product.status == "INACTIVE" %}selected{% endif %}>
+            Inactive
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <button type="submit">Update Product</button>
+
+</form>
+
+</body>
+</html>

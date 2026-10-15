@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Forecast</title>
+</head>
+<body>
+    <h1>Demand Forecast</h1>
+
+    <p><a href="{% url 'provider_dashboard' %}">Back to Dashboard</a></p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <label for="forecast_days">Forecast period:</label>
+        <select name="forecast_days" id="forecast_days">
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+        </select>
+
+        <button type="submit">Generate Forecast</button>
+    </form>
+
+    <hr>
+
+    <h2>Saved Forecasts</h2>
+
+    {% if forecasts %}
+        <table border="1" cellpadding="6">
+            <tr>
+                <th>Item</th>
+                <th>Forecast Date</th>
+                <th>Predicted Quantity</th>
+            </tr>
+
+            {% for forecast in forecasts %}
+                <tr>
+                    <td>{{ forecast.item.name }}</td>
+                    <td>{{ forecast.forecast_date }}</td>
+                    <td>{{ forecast.predicted_quantity }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No forecasts available yet.</p>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,11 @@
+<h1>Donor Dashboard</h1>
+<p>Welcome to the Donor Dashboard.</p>
+<h2>Your active carts</h2>
+{% for cart in carts %}
+    <section><p>Cart {{ cart.cart_id }} — RM {{ cart.total_amount }}</p>
+    {% for item in cart.items.all %}<p>{{ item.urgent_need.item.name }} × {{ item.quantity }}</p>{% endfor %}
+    <form method="post" action="{% url 'donation_checkout' cart.cart_id %}">{% csrf_token %}<button type="submit">Pay by FPX (sandbox)</button></form></section>
+{% empty %}<p>No active carts to pay.</p>{% endfor %}
+<h2>Your donations</h2>
+{% for donation in donations %}<p>Donation {{ donation.donation_id }} — RM {{ donation.total_amount }} — {{ donation.status }}</p>{% empty %}<p>No donations yet.</p>{% endfor %}
+<a href="{% url 'logout' %}">Logout</a>

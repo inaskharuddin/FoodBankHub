@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html><head><title>Donor payments</title></head><body>
+<h1>Donor payments</h1><p><a href="{% url 'admin_dashboard' %}">Admin dashboard</a></p>
+{% for donation in donations %}<section>
+<h2>Donation {{ donation.donation_id }} — {{ donation.status }}</h2>
+<p>Donor: {{ donation.donor.name }} ({{ donation.donor.email }}) | Amount: RM {{ donation.total_amount }}</p>
+{% for payment in donation.transactions.all %}<p>{{ payment.payment_method }}: {{ payment.status }}{% if payment.fpx_reference %} — FPX reference {{ payment.fpx_reference }}{% endif %}</p>{% endfor %}
+</section>{% empty %}<p>No donation records.</p>{% endfor %}
+</body></html>

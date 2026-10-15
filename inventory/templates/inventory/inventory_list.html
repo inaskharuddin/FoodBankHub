@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Inventory</title>
+</head>
+<body>
+
+<h1>My Inventory</h1>
+
+<a href="{% url 'provider_dashboard' %}">
+    Back to Dashboard
+</a>
+
+<br><br>
+
+<a href="{% url 'low_stock_alerts' %}">Low Stock Alerts</a><br><br>
+<a href="{% url 'inventory_add' %}">
+    <button>Add Inventory</button>
+</a>
+
+<hr>
+
+{% if inventory %}
+
+    <table border="1">
+
+        <tr>
+            <th>Item</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Unit</th>
+            <th>Threshold</th>
+            <th>Price Per Unit</th>
+            <th>Action</th>
+        </tr>
+
+        {% for record in inventory %}
+
+        <tr>
+
+            <td>{{ record.item.name }}</td>
+
+            <td>{{ record.item.category }}</td>
+
+            <td>{{ record.quantity }}</td>
+
+            <td>{{ record.item.unit }}</td>
+
+            <td>{{ record.threshold_level }}</td>
+
+            <td>{{ record.price_per_unit }}</td>
+
+            <td>
+                <a href="{% url 'inventory_edit' record.inventory_id %}">
+                    Edit
+                </a>
+
+                |
+
+                <a href="{% url 'inventory_delete' record.inventory_id %}">
+                    Delete
+                </a>
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+{% else %}
+
+    <p>No inventory records found.</p>
+
+{% endif %}
+
+</body>
+</html>

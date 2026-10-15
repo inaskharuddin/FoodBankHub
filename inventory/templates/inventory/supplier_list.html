@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Suppliers</title>
+</head>
+<body>
+
+<h1>Available Suppliers</h1>
+
+<a href="{% url 'provider_dashboard' %}">
+    Back to Dashboard
+</a>
+
+<hr>
+
+{% if suppliers %}
+
+    {% for supplier in suppliers %}
+
+        <div>
+            <h3>{{ supplier.business_name }}</h3>
+
+            <p>Contact Person: {{ supplier.contact_person }}</p>
+            <p>Phone: {{ supplier.phone }}</p>
+            <p>Rating: {{ supplier.rating }}</p>
+
+            <a href="{% url 'supplier_select' supplier.supplier_id %}">
+                <button>Select Supplier</button>
+            </a>
+        </div>
+
+        <hr>
+
+    {% endfor %}
+
+{% else %}
+
+    <p>No suppliers available.</p>
+
+{% endif %}
+
+</body>
+</html>

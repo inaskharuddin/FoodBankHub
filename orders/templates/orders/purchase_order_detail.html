@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Purchase Order {{ order.po_id }}</title></head>
+<body>
+    <h1>Purchase Order {{ order.po_id }}</h1>
+    <p><a href="{% url 'purchase_order_list' %}">Back to purchase orders</a></p>
+    <p>Supplier: {{ order.supplier.business_name }}</p>
+    <p>Created: {{ order.created_at }}</p>
+    <p>Status: {{ order.status }}</p>
+    <table>
+        <thead><tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Subtotal</th></tr></thead>
+        <tbody>{% for item in order.items.all %}<tr>
+            <td>{{ item.product.item.name }}</td><td>{{ item.quantity }}</td>
+            <td>{{ item.price }}</td><td>{{ item.subtotal }}</td>
+        </tr>{% empty %}<tr><td colspan="4">No items.</td></tr>{% endfor %}</tbody>
+    </table>
+    <p>Total: {{ order.total_amount }}</p>
+    {% if order.status == "DELIVERED" and not order.delivery_confirmed %}
+        <form method="post" action="{% url 'confirm_purchase_order_delivery' order.po_id %}">{% csrf_token %}<button type="submit">Confirm delivery and update inventory</button></form>
+    {% elif order.delivery_confirmed %}<p>Delivery confirmed; inventory has been updated.</p>{% endif %}
+</body>
+</html>

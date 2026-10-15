@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Low Stock Alerts</title></head>
+<body>
+<h1>Low Stock Alerts</h1>
+<p><a href="{% url 'provider_dashboard' %}">Back to Dashboard</a></p>
+<form method="get">
+  <label for="forecast-days">Forecast period:</label>
+  <select id="forecast-days" name="days" onchange="this.form.submit()">
+    <option value="7" {% if forecast_days == 7 %}selected{% endif %}>7 days</option>
+    <option value="30" {% if forecast_days == 30 %}selected{% endif %}>30 days</option>
+  </select>
+</form>
+<p>Forecast window: {{ period_start }} through {{ period_end }} ({{ forecast_days }} days). Required stock includes a 20% safety buffer.</p>
+{% if not has_inventory %}
+  <p>No inventory records are available for your account yet.</p>
+{% elif not has_forecasts %}
+  <p>No forecasts are available for your inventory items. Generate a forecast first.</p>
+{% else %}
+  {% if alerts %}
+    <table border="1" cellpadding="6">
+      <thead><tr><th>Item</th><th>{{ forecast_days }}-day forecast demand</th><th>Required stock (+20%)</th><th>Current stock</th><th>Threshold</th><th>Shortage</th><th>Alert</th></tr></thead>
+      <tbody>{% for alert in alerts %}
+        <tr><td>{{ alert.name }} ({{ alert.unit }})</td><td>{{ alert.forecast_demand }}</td><td>{{ alert.required_stock }}</td><td>{{ alert.current_stock }}</td><td>{{ alert.threshold_level }}</td><td>{{ alert.shortage }}</td><td>{{ alert.reason }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  {% else %}
+    <p>No low stock alerts: forecast demand and configured thresholds are covered by current stock.</p>
+  {% endif %}
+  {% if items_without_forecasts %}
+    <h2>Items without forecasts</h2>
+    <p>These items are omitted from the stock comparison until forecasts are generated:</p>
+    <ul>{% for item in items_without_forecasts %}<li>{{ item.item__name }}</li>{% endfor %}</ul>
+  {% endif %}
+{% endif %}
+</body></html>

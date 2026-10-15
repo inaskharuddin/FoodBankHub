@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Supplier Payments</title></head>
+<body>
+    <h1>Payments</h1>
+    <p><a href="{% url 'supplier_dashboard' %}">Supplier dashboard</a> | <a href="{% url 'supplier_order_list' %}">Purchase orders</a></p>
+    {% for payout in payouts %}
+        <section>
+            <h2>Payment for PO {{ payout.po_id }}</h2>
+            <p>Provider: {{ payout.po.provider.food_bank_name }}</p>
+            <p>Amount: {{ payout.amount }}</p>
+            <p>Status: {{ payout.status }}</p>
+            <p>Transfer reference: {{ payout.transfer_reference }}</p>
+            <p>Recorded: {{ payout.created_at }}</p>
+        </section>
+    {% empty %}<p>No payments have been recorded.</p>{% endfor %}
+</body>
+</html>
