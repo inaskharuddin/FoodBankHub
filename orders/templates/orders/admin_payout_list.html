@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><head><title>Supplier payouts</title></head><body>
+<h1>Supplier payouts</h1>
+<p><a href="{% url 'admin_dashboard' %}">Admin dashboard</a></p>
+{% for order in orders %}
+<section><h2>PO {{ order.po_id }} — {{ order.supplier.business_name }}</h2>
+<p>Provider: {{ order.provider.food_bank_name }} | Total: RM {{ order.total_amount }}</p>
+{% with payout=order.payouts.first %}
+    {% if payout %}<p>{{ payout.status }} — RM {{ payout.amount }} — Reference: {{ payout.transfer_reference }}</p>
+    {% else %}<form method="post" action="{% url 'record_purchase_order_payment' order.po_id %}">{% csrf_token %}
+    <label>Transfer reference <input name="transfer_reference" maxlength="100" required></label>
+    <button type="submit">Record Supplier payment</button></form>{% endif %}
+{% endwith %}</section>
+{% empty %}<p>No delivered orders are awaiting a Supplier payout.</p>{% endfor %}
+</body></html>

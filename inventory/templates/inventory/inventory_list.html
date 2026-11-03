@@ -1,0 +1,31 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Food Inventory{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="eyebrow-green">STOCK CONTROL</span><h1>Food inventory</h1><p>See stock on hand, supplier pricing and items that need attention.</p></div>
+  <div class="heading-actions"><a class="button button-secondary" href="{% url 'low_stock_alerts' %}">View stock alerts</a><a class="button" href="{% url 'inventory_add' %}">＋ Add or update stock</a></div>
+</section>
+
+<section class="inventory-summary" aria-label="Inventory summary">
+  <article class="inventory-summary-card"><span class="summary-symbol">▦</span><div><span>Tracked food items</span><strong>{{ inventory|length }}</strong></div></article>
+  <article class="inventory-summary-card"><span class="summary-symbol green">＋</span><div><span>Food items in stock</span><strong>{{ stocked_count }}</strong></div></article>
+  <article class="inventory-summary-card"><span class="summary-symbol {% if low_count %}red{% else %}green{% endif %}">!</span><div><span>Items at or below threshold</span><strong>{{ low_count }}</strong></div></article>
+  <article class="inventory-summary-card"><span class="summary-symbol gold">◎</span><div><span>Supplier panel</span><strong class="summary-name">{% if selected_supplier %}{{ selected_supplier.supplier.business_name }}{% else %}Not selected{% endif %}</strong></div></article>
+</section>
+
+<section class="table-panel">
+  <div class="table-panel-header"><div><h2>Current stock</h2><span class="muted">Unit prices are managed by your selected supplier.</span></div></div>
+  {% if inventory %}<div class="table-wrap"><table>
+    <thead><tr><th>Food item</th><th>Category</th><th>Quantity on hand</th><th>Stock level</th><th>Alert threshold</th><th>Supplier price</th><th>Actions</th></tr></thead>
+    <tbody>{% for record in inventory %}<tr>
+      <td><strong>{{ record.item.name }}</strong><small class="cell-subtitle">{{ record.item.unit }}</small></td>
+      <td>{{ record.item.category }}</td>
+      <td><strong class="quantity-value">{{ record.quantity }}</strong> {{ record.item.unit }}{% if record.is_low %}<span class="status-badge is-low">Low stock</span>{% else %}<span class="status-badge is-done">In range</span>{% endif %}</td>
+      <td><div class="stock-meter {% if record.is_low %}stock-meter-low{% endif %}"><span style="width:{{ record.stock_width }}%"></span></div></td>
+      <td>{{ record.threshold_level }} {{ record.item.unit }}</td>
+      <td>RM {{ record.price_per_unit }} <small class="cell-subtitle">per {{ record.item.unit }}</small></td>
+      <td><div class="row-actions"><a class="button button-small button-secondary" href="{% url 'inventory_edit' record.inventory_id %}">Edit stock</a><a class="text-action danger-text" href="{% url 'inventory_delete' record.inventory_id %}">Remove</a></div></td>
+    </tr>{% endfor %}</tbody>
+  </table></div>{% else %}<div class="empty-state"><span class="empty-icon">▦</span><h3>Your inventory is ready to set up</h3><p>Add the starting quantities for products offered by your selected supplier.</p><a class="button" href="{% url 'inventory_add' %}">Add your first stock item</a>{% if not selected_supplier %}<a class="text-action" href="{% url 'supplier_list' %}">Choose a supplier first</a>{% endif %}</div>{% endif %}
+</section>
+{% endblock %}

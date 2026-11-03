@@ -1,0 +1,8 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Needy Usage Report{% endblock %}
+{% block content %}
+<h1>Needy Usage Report</h1><p><a href="{% url 'provider_dashboard' %}">Back to dashboard</a></p>
+<h2>Most requested items</h2><table border="1"><tr><th>Item</th><th>Total distributed</th><th>Reports</th></tr>{% for row in popular_items %}<tr><td>{{ row.item__name }}</td><td>{{ row.total_quantity }} {{ row.item__unit }}</td><td>{{ row.report_count }}</td></tr>{% empty %}<tr><td colspan="3">No distribution reports yet.</td></tr>{% endfor %}</table>
+<h2>Peak collection hours</h2><table border="1"><tr><th>Hour</th><th>Quantity reported</th></tr>{% for row in peak_hours %}<tr><td>{{ row.hour }}:00</td><td>{{ row.total_quantity }}</td></tr>{% empty %}<tr><td colspan="2">No distribution reports yet.</td></tr>{% endfor %}</table>
+{% endblock %}
+

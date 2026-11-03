@@ -1,0 +1,9 @@
+{% extends "accounts/provider_base.html" %}
+{% block title %}Donation Monitoring{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow-green">DONOR SUPPORT</span><h1>Donation monitoring</h1><p>Track donor-funded food from payment through supplier delivery.</p></div></section>
+<div class="notice notice-info">Donor payments go to the platform admin. The admin pays suppliers after you confirm delivery; Providers receive food, not cash.</div>
+<section class="table-panel"><div class="table-panel-header"><h2>Donor contributions</h2><a href="{% url 'provider_urgent_needs' %}">View urgent needs →</a></div><div class="table-wrap"><table><thead><tr><th>Donation</th><th>Donor</th><th>Food item</th><th>Quantity</th><th>Contribution value</th><th>Payment</th><th>Fulfillment</th><th>Date</th></tr></thead><tbody>
+{% for entry in entries %}<tr><td>#{{ entry.donation.donation_id }}</td><td>{{ entry.donation.donor.name }}</td><td>{{ entry.item.name }}</td><td>{{ entry.quantity }} {{ entry.item.unit }}</td><td>RM {{ entry.line_total }}</td><td><span class="status-badge {% if entry.donation.status == 'PAID' %}is-done{% else %}is-pending{% endif %}">{{ entry.donation.status|title }}</span></td><td>{{ entry.progress_label }}</td><td>{{ entry.donation.created_at|date:"M j, Y · H:i" }}</td></tr>{% empty %}<tr><td colspan="8">Donor contributions for your food bank will appear here.</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

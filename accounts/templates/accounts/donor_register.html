@@ -1,0 +1,15 @@
+{% load static %}
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="{% static 'css/provider_portal.css' %}"><title>Create donor account</title></head><body class="provider-body auth-page">
+<h1>Join FoodBankHub as a donor</h1>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<form method="post">{% csrf_token %}
+<label>Name <input name="name" maxlength="100" required></label><br>
+<label>Email <input type="email" name="email" required></label><br>
+<label>Password <input type="password" name="password" required></label><br>
+<button type="submit">Create donor account</button>
+</form>
+<p><a href="{% url 'login' %}">Already registered? Sign in</a></p>
+</body></html>
+
+

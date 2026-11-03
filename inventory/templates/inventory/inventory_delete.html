@@ -1,0 +1,28 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Delete Inventory{% endblock %}
+{% block content %}
+<h1>Delete Inventory</h1>
+
+<p>
+    Are you sure you want to delete
+    <strong>{{ inventory.item.name }}</strong>?
+</p>
+
+<p>
+    Current Quantity:
+    {{ inventory.quantity }} {{ inventory.item.unit }}
+</p>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <button type="submit">
+        Yes, Delete
+    </button>
+
+    <a href="{% url 'inventory_list' %}">
+        Cancel
+    </a>
+</form>
+{% endblock %}
+

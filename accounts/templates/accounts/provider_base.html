@@ -1,0 +1,50 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Provider Portal{% endblock %} · FoodBankHub</title>
+  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=forecast-three-column-cards">
+  <script defer src="{% static 'js/provider_portal.js' %}"></script>
+</head>
+<body class="provider-body">
+  <div class="provider-shell">
+    <button class="sidebar-scrim" type="button" aria-label="Close navigation" data-sidebar-close></button>
+    <aside class="provider-sidebar" id="provider-sidebar" aria-label="Provider navigation">
+      <a class="brand" href="{% url 'provider_dashboard' %}">
+        <span class="brand-mark" aria-hidden="true">FH</span>
+        <span><strong>FoodBankHub</strong><small>Provider workspace</small></span>
+      </a>
+      <nav class="provider-nav">
+        <span class="nav-label">WORKSPACE</span>
+        <a title="Dashboard" class="nav-link {% if request.resolver_match.url_name == 'provider_dashboard' %}is-active{% endif %}" href="{% url 'provider_dashboard' %}"><span class="nav-icon">⌂</span>Dashboard</a>
+        <a title="Profile management" class="nav-link {% if request.resolver_match.url_name == 'provider_settings' %}is-active{% endif %}" href="{% url 'provider_settings' %}"><span class="nav-icon">◉</span>Profile management</a>
+        <a title="Supplier panel" class="nav-link {% if request.resolver_match.url_name == 'supplier_list' or request.resolver_match.url_name == 'selected_supplier_products' %}is-active{% endif %}" href="{% url 'supplier_list' %}"><span class="nav-icon">◎</span>Supplier panel</a>
+        <a title="Food inventory" class="nav-link {% if request.resolver_match.url_name == 'inventory_list' or request.resolver_match.url_name == 'inventory_add' or request.resolver_match.url_name == 'inventory_edit' %}is-active{% endif %}" href="{% url 'inventory_list' %}"><span class="nav-icon">▦</span>Food inventory</a>
+        <a title="Inventory monitoring" class="nav-link {% if request.resolver_match.url_name == 'low_stock_alerts' %}is-active{% endif %}" href="{% url 'low_stock_alerts' %}"><span class="nav-icon">◷</span>Inventory monitoring</a>
+        <a title="Urgent needs" class="nav-link {% if request.resolver_match.url_name == 'provider_urgent_needs' %}is-active{% endif %}" href="{% url 'provider_urgent_needs' %}"><span class="nav-icon">♡</span>Urgent needs</a>
+        <a title="Donation monitoring" class="nav-link {% if request.resolver_match.url_name == 'provider_donation_monitoring' %}is-active{% endif %}" href="{% url 'provider_donation_monitoring' %}"><span class="nav-icon">♥</span>Donation monitoring</a>
+        <a title="Supplier orders" class="nav-link {% if request.resolver_match.url_name == 'purchase_order_list' or request.resolver_match.url_name == 'purchase_order_detail' or request.resolver_match.url_name == 'purchase_order_create' %}is-active{% endif %}" href="{% url 'purchase_order_list' %}"><span class="nav-icon">▤</span>Supplier orders</a>
+        <a title="Demand forecast" class="nav-link {% if request.resolver_match.url_name == 'historical_data' or request.resolver_match.url_name == 'view_forecast' %}is-active{% endif %}" href="{% url 'view_forecast' %}"><span class="nav-icon">⌁</span>Demand forecast</a>
+        <a title="Reports" class="nav-link {% if request.resolver_match.url_name == 'provider_reports' or request.resolver_match.url_name == 'provider_daily_summary' or request.resolver_match.url_name == 'needy_usage_report' %}is-active{% endif %}" href="{% url 'provider_reports' %}"><span class="nav-icon">▥</span>Reports</a>
+        <a title="Service areas" class="nav-link {% if request.resolver_match.url_name == 'service_area_manage' %}is-active{% endif %}" href="{% url 'service_area_manage' %}"><span class="nav-icon">⌖</span>Service areas</a>
+        <a title="Log out" class="nav-link logout-link" href="{% url 'logout' %}"><span class="nav-icon">↪</span>Log out</a>
+      </nav>
+      <div class="sidebar-footer"><span class="avatar avatar-small">{{ request.user.name|first|upper }}</span><span><strong>{{ request.user.name }}</strong><small>{{ provider.food_bank_name|default:request.user.email }}</small></span></div>
+    </aside>
+    <div class="provider-main">
+      <header class="provider-topbar">
+        <button class="menu-toggle" type="button" aria-label="Toggle navigation" title="Toggle navigation" aria-controls="provider-sidebar" aria-expanded="true" data-sidebar-toggle><span></span><span></span><span></span></button>
+        <div class="topbar-title"><span class="eyebrow">FOOD BANK MANAGEMENT</span><strong>{{ provider.food_bank_name|default:"Provider workspace" }}</strong></div>
+        <a class="topbar-account" href="{% url 'provider_settings' %}" aria-label="Open profile"><span class="avatar">{{ request.user.name|first|upper }}</span><span class="account-name">{{ request.user.name }}</span><span class="account-caret">⌄</span></a>
+      </header>
+      <main class="provider-content">
+        {% if messages %}<div class="message-stack">{% for message in messages %}<div class="notice notice-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% block content %}{% endblock %}
+      </main>
+      <footer class="provider-footer">FoodBankHub · Provider Portal <span>Food distribution, managed together.</span></footer>
+    </div>
+  </div>
+</body>
+</html>

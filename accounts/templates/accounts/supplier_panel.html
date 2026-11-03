@@ -1,0 +1,10 @@
+{% extends "accounts/supplier_base.html" %}
+{% block title %}Provider panel{% endblock %}
+{% block breadcrumb %}Provider panel{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Your network</p><h1>Provider panel</h1><p class="page-subtitle">Food banks that selected your business and can order from your active catalog.</p></div></section>
+<section class="stats-grid two"><article class="stat-card"><div><p class="stat-label">Providers on your panel</p><p class="stat-value">{{ provider_count }}</p><p class="stat-note">Active supplier selections</p></div><span class="stat-icon">♧</span></article><article class="stat-card"><div><p class="stat-label">Active catalog items</p><p class="stat-value">{{ active_product_count }}</p><p class="stat-note">Manage availability in Products</p></div><span class="stat-icon">▦</span></article></section>
+<section class="card"><div class="card-header"><div><h2>Providers using your catalog</h2><p class="card-help">Contact details are taken from each provider’s account.</p></div></div>
+{% if providers %}<div class="provider-grid">{% for relation in providers %}<article class="provider-card card"><div class="provider-head"><span class="provider-logo">{{ relation.provider.food_bank_name|first|upper }}</span><div><strong>{{ relation.provider.food_bank_name }}</strong><small>Contact: {{ relation.provider.user.name }}</small></div></div><div class="provider-meta"><span>Selected {{ relation.selected_at|date:"M j, Y" }}</span><span>{{ relation.order_count }} order{{ relation.order_count|pluralize }}</span></div><p class="card-help">{{ relation.provider.user.email }}{% if relation.provider.phone %} · {{ relation.provider.phone }}{% endif %}</p></article>{% endfor %}</div>{% else %}<div class="empty-state"><strong>No providers on your panel</strong><p>Once a provider selects your supplier business, it will be listed here.</p></div>{% endif %}
+</section>
+{% endblock %}

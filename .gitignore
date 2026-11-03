@@ -1,0 +1,28 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Nested checkout present inside this workspace; keep its independent Git history separate.
+/FoodBankHub/
+
+# Local databases and database backups
+*.sqlite3
+*.sqlite3-journal
+*.db
+*.sql
+*.sql.gz
+
+# Python runtime/cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Generated/local files
+staticfiles/
+media/
+.coverage
+.pytest_cache/
+.mypy_cache/

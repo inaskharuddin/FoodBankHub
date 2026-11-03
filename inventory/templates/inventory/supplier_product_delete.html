@@ -1,0 +1,7 @@
+{% extends "accounts/supplier_base.html" %}
+{% block title %}Remove product{% endblock %}
+{% block breadcrumb %}Products / Remove{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Catalog management</p><h1>Remove product</h1><p class="page-subtitle">This will hide the product from provider catalogs.</p></div></section>
+<section class="card form-card"><div class="notice" style="margin-top:0"><span class="notice-icon">!</span><span>Remove <strong>{{ product.item.name }}</strong> from your active catalog? Existing order records will remain available.</span></div><form method="post" action="{% url 'supplier_product_delete' product.product_id %}" data-confirm="Remove this product from your catalog?">{% csrf_token %}<div class="form-actions"><a class="btn btn-outline" href="{% url 'supplier_product_list' %}">Keep product</a><button class="btn btn-danger" type="submit">Remove product</button></div></form></section>
+{% endblock %}

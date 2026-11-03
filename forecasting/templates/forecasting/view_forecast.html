@@ -1,0 +1,108 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Demand Forecast{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow-green">PLAN AHEAD</span><h1>Demand forecast</h1><p>Review expected food demand and compare it with the demand you have recorded.</p></div><div class="heading-actions"><a class="button button-secondary" href="{% url 'historical_data' %}">Historical data</a></div></section>
+
+<section class="forecast-controls panel" aria-label="Forecast controls"><div><span class="eyebrow-green">FORECAST PERIOD</span><h2>Choose a planning window</h2><p class="muted">New forecasts are saved as snapshots so you can compare them later.</p></div><form method="post" class="forecast-generate-form">{% csrf_token %}<label for="forecast-days">Generate</label><select id="forecast-days" name="forecast_days"><option value="7" {% if days == 7 %}selected{% endif %}>Next 7 days</option><option value="30" {% if days == 30 %}selected{% endif %}>Next 30 days</option></select><button type="submit">Generate forecast</button></form></section>
+
+<div class="forecast-tabs" role="navigation" aria-label="Forecast period"><a class="{% if days == 7 %}is-selected{% endif %}" href="?days=7">7-day view</a><a class="{% if days == 30 %}is-selected{% endif %}" href="?days=30">30-day view</a>{% if latest_run %}<span>Latest saved: {{ latest_run.created_at|date:"M j, Y · H:i" }}</span>{% endif %}</div>
+
+<section class="forecast-highlights" aria-label="Forecast summary">
+  <article><span class="summary-symbol gold">⌁</span><div><small>Categories forecast</small><strong>{{ category_data|length }}</strong></div></article>
+  <article><span class="summary-symbol green">▦</span><div><small>Forecast rows</small><strong>{{ forecasts|length }}</strong></div></article>
+  <article><span class="summary-symbol blue">✓</span><div><small>Forecast accuracy</small>{% if accuracy != None %}<strong>{{ accuracy }}%</strong>{% else %}<strong class="forecast-unavailable">Building</strong>{% endif %}</div></article>
+</section>
+
+<section class="panel forecast-section"><div class="panel-heading"><div><span class="eyebrow-green">BY FOOD CATEGORY</span><h2>Expected demand</h2></div><span class="muted">Total predicted quantity over {{ days }} days</span></div>
+  {% for category in category_data %}<div class="forecast-category-row"><span>{{ category.name }}</span><div class="forecast-bar-track"><span style="width:{{ category.bar_width }}%"></span></div><strong>{{ category.total|floatformat:1 }}</strong></div>{% empty %}<div class="empty-inline">No forecast yet. Add at least two dated demand records for an item, then generate a forecast.</div>{% endfor %}
+</section>
+
+{% if previous_runs %}<section class="snapshot-compare panel"><div><span class="eyebrow-green">HISTORY</span><h2>Compare saved snapshots</h2><p class="muted">Choose an earlier run to compare.</p></div><div class="snapshot-picker" data-snapshot-picker><form method="get" class="snapshot-compare-form"><input type="hidden" name="days" value="{{ days }}"><input type="hidden" name="compare_run" value="{{ comparison_run.pk|default:'' }}" data-compare-run><label for="snapshot-picker-trigger">Compare with</label><button id="snapshot-picker-trigger" class="snapshot-picker-trigger" type="button" aria-expanded="false" data-picker-trigger><span data-picker-label>{% if comparison_run %}{{ comparison_run.created_at|date:"M j, Y · H:i" }} · {{ comparison_run.forecast_days }} days{% else %}Choose a snapshot{% endif %}</span><span aria-hidden="true">⌄</span></button><button class="button" type="submit">Compare</button></form><div class="snapshot-picker-list" data-picker-list hidden>{% for run in snapshot_menu_runs %}<div class="snapshot-picker-row{% if comparison_run.pk == run.pk %} is-selected{% endif %}"><button class="snapshot-run-option" type="button" data-run-id="{{ run.pk }}" data-run-label="{{ run.created_at|date:'M j, Y · H:i' }} · {{ run.forecast_days }} days" aria-selected="{% if comparison_run.pk == run.pk %}true{% else %}false{% endif %}">{{ run.created_at|date:"M j, Y · H:i" }} · {{ run.forecast_days }} days</button><form method="post" action="{% url 'delete_forecast_run' %}" onsubmit="return confirm('Delete this forecast snapshot?');">{% csrf_token %}<input type="hidden" name="run_id" value="{{ run.pk }}"><button class="snapshot-delete" type="submit" aria-label="Delete snapshot from {{ run.created_at|date:'M j, Y H:i' }}" title="Delete snapshot"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg></button></form></div>{% endfor %}</div></div></section>{% endif %}
+
+<section class="forecast-visual-section" aria-labelledby="daily-forecast-heading"><div class="table-panel-header"><div><span class="eyebrow-green">DAILY DETAIL</span><h2 id="daily-forecast-heading">Forecast by item and date</h2></div><span class="muted">Each food has its own quantity scale and unit.</span></div>
+  {% if item_charts %}<div class="forecast-item-chart-grid">{% for chart in item_charts %}<article class="panel forecast-item-chart"><div class="forecast-item-chart-heading"><div><h3>{{ chart.item.name }}</h3><span>{{ chart.item.category }} · {{ chart.item.unit }}</span></div><strong>{{ chart.rows|length }} day{{ chart.rows|length|pluralize }}</strong></div>
+    <p class="forecast-chart-hint">Read across the dates. Higher points mean more food is expected. Hover or tap a point to see the quantity.</p>
+    <div class="forecast-chart-scroll"><canvas class="forecast-item-chart-canvas" data-chart-index="{{ forloop.counter0 }}" role="img" aria-label="{{ chart.item.name }} daily predicted demand in {{ chart.item.unit }}"></canvas></div>
+    </article>{% endfor %}</div>{{ chart_data|json_script:"forecast-chart-data" }}{% else %}<div class="empty-inline">No forecast data for this period yet. Add demand history and generate a forecast.</div>{% endif %}
+</section>
+
+<section class="forecast-bottom-grid"><article class="panel accuracy-panel"><span class="eyebrow-green">MODEL ACCURACY</span><h2>Forecast accuracy</h2>{% if mape != None %}<div class="accuracy-value">{{ accuracy }}<small>%</small></div><p>Average error (MAPE): {{ mape }}%. Based on matured forecast dates with recorded actual demand.</p>{% else %}<p>Accuracy will appear after forecast dates pass and actual demand is reported or uploaded.</p>{% endif %}</article><article class="panel actual-panel"><span class="eyebrow-green">LAST 30 DAYS</span><h2>Forecast vs actual</h2><div class="chart-legend"><span><i class="legend-predicted"></i>Predicted</span><span><i class="legend-actual"></i>Actual</span></div>{% for row in history %}<div class="actual-row"><span>{{ row.item.name }} · {{ row.forecast_date|date:"M j" }}</span><div><i class="legend-predicted" style="width:{{ row.predicted_width }}%"></i><i class="legend-actual" style="width:{{ row.actual_width }}%"></i></div><strong>{{ row.actual_quantity|floatformat:0 }}/{{ row.predicted_quantity|floatformat:0 }}</strong></div>{% empty %}<p class="muted">No matured forecasts can be compared yet.</p>{% endfor %}</article></section>
+{% if item_charts %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (typeof Chart === "undefined") return;
+  const chartData = JSON.parse(document.getElementById("forecast-chart-data").textContent);
+  document.querySelectorAll(".forecast-item-chart-canvas").forEach(function (canvas) {
+    const data = chartData[Number(canvas.dataset.chartIndex)];
+    const datasets = [{
+      label: "Current forecast", data: data.values, borderColor: "#23734d",
+      backgroundColor: "rgba(35, 115, 77, 0.12)", pointBackgroundColor: "#fff",
+      pointBorderColor: "#23734d", pointRadius: data.values.length > 14 ? 2 : 4,
+      pointHoverRadius: 6, borderWidth: 3, tension: 0.25, fill: true,
+    }];
+    if (data.comparison.some(function (value) { return value !== null; })) {
+      datasets.push({
+        label: "Earlier forecast", data: data.comparison, borderColor: "#c58b1b",
+        backgroundColor: "transparent", pointBackgroundColor: "#fff",
+        pointBorderColor: "#c58b1b", pointRadius: 3, pointHoverRadius: 6,
+        borderWidth: 2, borderDash: [6, 4], tension: 0.25, spanGaps: false,
+      });
+    }
+    new Chart(canvas, {
+      type: "line",
+      data: { labels: data.labels, datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: true, position: "bottom", labels: { usePointStyle: true, boxWidth: 8, padding: 18 } },
+          tooltip: { callbacks: { label: function (context) { return context.dataset.label + ": " + Number(context.parsed.y).toLocaleString() + " " + data.unit; } } },
+        },
+        scales: {
+          x: { title: { display: true, text: "Date" }, grid: { display: false }, ticks: { maxTicksLimit: 7, maxRotation: 0, autoSkip: true } },
+          y: { beginAtZero: true, title: { display: true, text: "Expected amount (" + data.unit + ")" }, ticks: { precision: 0 }, grid: { color: "#e7ece8" } },
+        },
+      },
+    });
+  });
+});
+</script>{% endif %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("[data-snapshot-picker]").forEach(function (picker) {
+    const trigger = picker.querySelector("[data-picker-trigger]");
+    const list = picker.querySelector("[data-picker-list]");
+    const label = picker.querySelector("[data-picker-label]");
+    const input = picker.querySelector("[data-compare-run]");
+    if (!trigger || !list || !label || !input) return;
+    function closeList() {
+      list.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    }
+    trigger.addEventListener("click", function () {
+      const opening = list.hidden;
+      list.hidden = !opening;
+      trigger.setAttribute("aria-expanded", String(opening));
+    });
+    picker.querySelectorAll("[data-run-id]").forEach(function (option) {
+      option.addEventListener("click", function () {
+        input.value = option.dataset.runId;
+        label.textContent = option.dataset.runLabel;
+        picker.querySelectorAll("[data-run-id]").forEach(function (row) {
+          row.classList.toggle("is-selected", row === option);
+          row.setAttribute("aria-selected", String(row === option));
+        });
+        closeList();
+        trigger.focus();
+      });
+    });
+    document.addEventListener("click", function (event) {
+      if (!picker.contains(event.target)) closeList();
+    });
+    picker.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeList();
+    });
+  });
+});
+</script>
+{% endblock %}

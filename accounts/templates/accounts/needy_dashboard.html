@@ -1,0 +1,14 @@
+{% extends 'accounts/needy_base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="needy-page-shell needy-dashboard">
+  <header class="needy-page-heading"><h1>DASHBOARD OVERVIEW</h1><p>[ Weekly Allowance Tracking ]</p></header>
+  <section class="needy-wire-panel"><h2>Your registered address</h2><div class="needy-address-box">{{ needy.address }}, {{ needy.city }}, {{ needy.state }} {{ needy.postcode }}</div><small>* This address is used for service area verification</small></section>
+  <section class="needy-wire-panel needy-reset-notice"><span>WEEKLY RESET NOTICE</span><p>Your allowance resets every Monday. This week began {{ week_start|date:"j M Y" }}.</p></section>
+  <section class="needy-wire-panel"><h2>WEEKLY ALLOWANCE STATUS</h2><div class="needy-allowance-list">
+  {% for usage in usages %}<article class="needy-wire-allowance"><div class="needy-wire-allowance-title"><strong>[ {{ usage.item.name|upper }} · {{ usage.provider.food_bank_name|upper }} ]</strong><span>{{ usage.used_quantity }} of {{ usage.allowed_quantity }} {{ usage.item.unit }} used</span></div><div class="needy-wire-progress"><progress value="{{ usage.used_quantity }}" max="{{ usage.allowed_quantity|default:1 }}" aria-label="{{ usage.item.name }} allowance used"></progress><b>{% widthratio usage.used_quantity usage.allowed_quantity|default:1 100 %}%</b></div><small>Remaining: {{ usage.remaining_quantity }} {{ usage.item.unit }}</small></article>
+  {% empty %}<div class="needy-wire-empty">No allowance limits have been set by providers yet.</div>{% endfor %}</div></section>
+  <div class="needy-wire-actions"><a href="{% url 'needy_scan' %}">[ SCAN QR CODE ]</a><a href="{% url 'needy_provider_finder' %}">[ FIND FOOD BANKS ]</a></div>
+  <section class="needy-wire-panel needy-how-panel"><span>HOW IT WORKS</span><ol><li>Walk into a food bank during operating hours</li><li>Take food from shelves (self-service, no approval needed)</li><li>Scan the QR code at the location to self-report what you took</li><li>The system checks your address and weekly limits automatically</li></ol></section>
+</div>
+{% endblock %}

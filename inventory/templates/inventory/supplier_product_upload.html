@@ -1,0 +1,14 @@
+{% extends "accounts/supplier_base.html" %}
+{% block title %}Bulk upload{% endblock %}
+{% block breadcrumb %}Products / Bulk upload{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Catalog management</p><h1>Bulk upload</h1><p class="page-subtitle">Add several products at once with a comma-separated values file.</p></div></section>
+{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+<section class="card form-card"><div class="card-header"><div><h2>Import product list</h2><p class="card-help">We check every row before adding anything to your catalog.</p></div></div>
+<form method="post" enctype="multipart/form-data" action="{% url 'supplier_product_upload' %}">{% csrf_token %}
+  <input class="file-input" id="csv-file" type="file" name="csv_file" accept=".csv,text/csv" required data-csv-input>
+  <label class="drop-zone" for="csv-file" tabindex="0" role="button" data-drop-zone><span aria-hidden="true" style="font-size:25px">⇧</span><strong>Drop your CSV file here</strong><small>or <span data-browse style="color:#126442;font-weight:700">browse files</span> from your device</small><span class="file-name" data-file-name></span></label>
+  <div class="csv-help"><strong>Required columns</strong><br><code>name, category, unit, price, stock</code><br>Example: Rice, Grains, kg, 3.20, 100<br><a class="text-link" href="{% url 'supplier_product_csv_template' %}">Download the ready-to-use CSV template</a></div>
+  <div class="form-actions"><a class="btn btn-outline" href="{% url 'supplier_product_list' %}">Cancel</a><button class="btn btn-gold" type="submit">Upload products</button></div>
+</form></section>
+{% endblock %}

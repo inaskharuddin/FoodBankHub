@@ -1,0 +1,15 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Food Bank Profile{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow-green">FOOD BANK SETUP</span><h1>Profile and opening hours</h1><p>Keep your public food bank information accurate for Needy users and donors.</p></div></section>
+{% if saved %}<div class="notice notice-success">Your food bank details have been saved.</div>{% endif %}
+<section class="settings-layout"><div class="form-panel settings-form-panel"><h2>Food bank details</h2><p class="muted">Contact and operating information shown in your profile.</p>
+<form method="post">{% csrf_token %}
+  <label for="food-bank-name">Food bank name</label><input id="food-bank-name" name="food_bank_name" value="{{ provider.food_bank_name }}" maxlength="200" required>
+  <label for="food-bank-phone">Contact phone</label><input id="food-bank-phone" name="phone" value="{{ provider.phone }}" maxlength="20" autocomplete="tel" required>
+  <label for="food-bank-address">Address</label><textarea id="food-bank-address" name="address" rows="3" required>{{ provider.address }}</textarea>
+  <label for="food-bank-hours">Self-service hours</label><input id="food-bank-hours" name="operating_hours" value="{{ provider.operating_hours }}" maxlength="255" placeholder="e.g. Mon-Fri 9:00-17:00 or 24/7" required><small class="field-help">Describe when people can visit your food bank.</small>
+  <div class="form-actions"><button type="submit">Save profile</button><a class="button button-secondary" href="{% url 'provider_dashboard' %}">Cancel</a></div>
+</form></div>
+<aside class="settings-help panel"><span class="settings-help-icon">⌖</span><h2>Set your service area</h2><p>Add the postcodes and zones your food bank serves. Needy self-reports are checked against these areas.</p><a class="button button-secondary" href="{% url 'service_area_manage' %}">Manage service areas</a><hr><h3>Supplier and prices</h3><p>Your selected supplier controls catalog prices. You can change your supplier panel at any time.</p><a class="text-action" href="{% url 'supplier_list' %}">View approved suppliers →</a></aside></section>
+{% endblock %}

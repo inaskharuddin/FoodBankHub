@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html><head><title>Donor payments</title></head><body>
+<h1>Donor payments</h1><p><a href="{% url 'admin_dashboard' %}">Admin dashboard</a></p>
+{% for donation in donations %}<section>
+<h2>Donation {{ donation.donation_id }} — {{ donation.status }}</h2>
+<p>Donor: {{ donation.donor.name }} ({{ donation.donor.email }}) | Amount: RM {{ donation.total_amount }}</p>
+{% for payment in donation.transactions.all %}<p>{{ payment.payment_method }}: {{ payment.status }}{% if payment.fpx_reference %} — reference {{ payment.fpx_reference }}{% endif %}{% if payment.verification_note %} — Admin verification: {{ payment.verification_note }}{% endif %}</p>{% if payment.status == "FAILED" %}<form method="post" action="{% url 'admin_verify_failed_payment' payment.transaction_id %}">{% csrf_token %}<label>Verified bank reference <input name="bank_reference" maxlength="100" required></label><label>Verification note <input name="verification_note" maxlength="500" required></label><button type="submit">Record verified payment</button></form>{% endif %}{% endfor %}
+</section>{% empty %}<p>No donation records.</p>{% endfor %}
+</body></html>

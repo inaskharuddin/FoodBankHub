@@ -1,0 +1,11 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Service Areas{% endblock %}
+{% block content %}
+<h1>Service Areas</h1><p><a href="{% url 'provider_dashboard' %}">Back to dashboard</a></p>
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="add">
+<label>Zone <input name="zone_name" placeholder="Seksyen 2" required></label>
+<label>Postcode <input name="postcode" required></label><button>Add service area</button></form>
+<ul>{% for area in areas %}<li>{{ area.zone_name }} — {{ area.postcode }}
+<form method="post" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="service_area_id" value="{{ area.service_area_id }}"><button>Remove</button></form></li>{% empty %}<li>No service areas configured. Self-reports will be blocked until you add one.</li>{% endfor %}</ul>
+{% endblock %}
+

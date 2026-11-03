@@ -1,0 +1,36 @@
+{% extends "accounts/supplier_base.html" %}
+{% block title %}Purchase orders{% endblock %}
+{% block breadcrumb %}Purchase orders{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Order management</p><h1>Purchase orders</h1><p class="page-subtitle">Review provider requests, confirm availability, and keep delivery details up to date.</p></div></section>
+<div class="tabs" role="navigation" aria-label="Filter orders">
+  <a class="tab-link {% if view == 'pending' %}is-active{% endif %}" href="?view=pending">Needs action <span class="tab-count">{{ pending_count }}</span></a>
+  <a class="tab-link {% if view == 'accepted' %}is-active{% endif %}" href="?view=accepted">Accepted <span class="tab-count">{{ accepted_count }}</span></a>
+  <a class="tab-link {% if view == 'shipped' %}is-active{% endif %}" href="?view=shipped">Shipped <span class="tab-count">{{ shipped_count }}</span></a>
+  <a class="tab-link {% if view == 'delivered' %}is-active{% endif %}" href="?view=delivered">Delivered</a>
+  <a class="tab-link {% if view == 'history' %}is-active{% endif %}" href="?view=history">History</a>
+  <a class="tab-link {% if view == 'all' %}is-active{% endif %}" href="?view=all">All</a>
+</div>
+<form class="card filter-bar" method="get" action="{% url 'supplier_order_list' %}"><input type="hidden" name="view" value="{{ view }}"><div class="field" style="flex:1 1 230px"><label for="order-search">Search provider or PO number</label><input id="order-search" type="search" name="q" value="{{ search }}" placeholder="e.g. Community Food Bank or 104"></div><button class="btn btn-outline" type="submit">Search</button>{% if search %}<a class="btn btn-outline" href="?view={{ view }}">Clear</a>{% endif %}</form>
+<div class="order-list">
+{% for order in orders %}
+<details class="card order-card" id="order-{{ order.po_id }}" {% if order.status == "PENDING" and view == "pending" %}open{% endif %}>
+  <summary class="order-summary"><div class="order-summary-main"><span class="order-symbol">#{{ order.po_id }}</span><span class="order-heading"><strong>{{ order.provider.food_bank_name }}</strong><small>Order #{{ order.po_id }} · {{ order.created_at|date:"M j, Y" }}{% if order.delivery_deadline %} · Due {{ order.delivery_deadline|date:"M j" }}{% endif %}</small></span></div><span class="order-summary-end"><span class="pill pill-{{ order.status|lower }}">{{ order.status|lower }}</span><span class="order-total">RM {{ order.total_amount|floatformat:2 }}</span></span></summary>
+  <div class="order-detail"><div>
+    <div class="detail-grid"><div><span class="detail-label">Contact person</span><span class="detail-value">{{ order.provider.user.name }}</span></div><div><span class="detail-label">Provider phone</span><span class="detail-value">{{ order.provider.phone|default:"Not provided" }}</span></div><div><span class="detail-label">Order status</span><span class="detail-value">{{ order.status|title }}</span></div></div>
+    <span class="detail-label">Items in this order</span><div class="table-wrap"><table class="order-lines"><thead><tr><th>Product</th><th>Qty</th><th>Unit price</th><th>Subtotal</th></tr></thead><tbody>{% for item in order.items.all %}<tr><td>{{ item.product.item.name }} <span class="muted">/ {{ item.product.item.unit }}</span></td><td>{{ item.quantity }}</td><td>RM {{ item.price|floatformat:2 }}</td><td>RM {{ item.subtotal|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="4">No order items found.</td></tr>{% endfor %}</tbody></table></div>
+    {% if order.rejection_reason %}<div class="notice"><span class="notice-icon">i</span><span><strong>Rejection reason:</strong> {{ order.rejection_reason }}</span></div>{% endif %}
+    {% if order.tracking_number %}<p class="card-help"><strong>Tracking:</strong> {{ order.tracking_number }}</p>{% endif %}{% if order.delivery_note %}<p class="card-help"><strong>Delivery note:</strong> {{ order.delivery_note }}</p>{% endif %}
+  </div>
+  <aside class="order-actions">
+    {% if order.status == "PENDING" %}<h3>Respond to request</h3><form class="inline-form" method="post" action="{% url 'supplier_update_order_status' order.po_id %}">{% csrf_token %}<input type="hidden" name="action" value="accept"><button class="btn btn-gold" type="submit">Accept order</button></form><form class="inline-form" method="post" action="{% url 'supplier_update_order_status' order.po_id %}" data-confirm="Reject this order? The provider will see your reason.">{% csrf_token %}<input type="hidden" name="action" value="reject"><div class="field"><label for="reason-{{ order.po_id }}">Reason for rejecting</label><textarea id="reason-{{ order.po_id }}" name="rejection_reason" maxlength="2000" required placeholder="Tell the provider why you cannot fulfil this request"></textarea></div><button class="btn btn-danger" type="submit">Reject order</button></form>
+    {% elif order.status == "ACCEPTED" %}<h3>Prepare shipment</h3><form class="inline-form" method="post" action="{% url 'supplier_update_order_status' order.po_id %}">{% csrf_token %}<input type="hidden" name="action" value="ship"><div class="field"><label for="tracking-{{ order.po_id }}">Tracking number <span class="muted">(optional)</span></label><input id="tracking-{{ order.po_id }}" name="tracking_number" maxlength="100" placeholder="Courier tracking ID"></div><div class="field"><label for="note-{{ order.po_id }}">Delivery note <span class="muted">(optional)</span></label><textarea id="note-{{ order.po_id }}" name="delivery_note" maxlength="2000" placeholder="Courier, delivery window, or other details"></textarea></div><button class="btn btn-gold" type="submit">Mark as shipped</button></form>
+    {% elif order.status == "SHIPPED" %}<h3>Delivery update</h3><p class="card-help">When the order reaches the provider, mark it delivered. The provider will confirm receipt before inventory and payout are updated.</p><form method="post" action="{% url 'supplier_update_order_status' order.po_id %}" data-confirm="Mark this order as delivered? The provider will then be asked to confirm receipt.">{% csrf_token %}<input type="hidden" name="action" value="mark-delivered"><button class="btn btn-gold" type="submit">Mark as delivered</button></form>
+    {% elif order.status == "DELIVERED" %}<h3>Delivery sent</h3>{% if order.delivery_confirmed %}<p class="card-help">Provider confirmed this delivery. It is eligible for payout.</p><a class="btn btn-outline" href="{% url 'supplier_invoice' order.po_id %}">Download invoice PDF</a>{% else %}<p class="card-help">Waiting for the provider to confirm receipt.</p>{% endif %}
+    {% elif order.status == "REJECTED" %}<h3>Order closed</h3><p class="card-help">This request was rejected and is now part of your order history.</p>
+    {% endif %}
+  </aside></div>
+</details>
+{% empty %}<section class="card empty-state"><strong>No orders in this view</strong><p>Try a different status, or clear your search.</p></section>{% endfor %}
+</div>
+{% endblock %}

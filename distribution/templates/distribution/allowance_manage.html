@@ -1,0 +1,6 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}allowance_manage{% endblock %}
+{% block content %}
+<h1>Weekly needy allowances</h1><p>Set a per-person weekly limit for each item. Limits reset Monday.</p><form method="post">{% csrf_token %}<label>Item <select name="item_id">{% for item in items %}<option value="{{ item.item_id }}">{{ item.name }} ({{ item.unit }})</option>{% endfor %}</select></label><label>Weekly limit <input type="number" min="0" name="weekly_limit" required></label><button>Save limit</button></form><ul>{% for limit in limits %}<li>{{ limit.item.name }}: {{ limit.weekly_limit }} {{ limit.item.unit }} per week</li>{% empty %}<li>No limits configured. Unconfigured items have a zero allowance.</li>{% endfor %}</ul><a href="{% url 'provider_dashboard' %}">Back to dashboard</a>
+{% endblock %}
+

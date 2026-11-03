@@ -1,0 +1,26 @@
+{% extends "accounts/supplier_base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Supplier workspace</p><h1>Good day, {{ request.user.name|default:supplier.business_name }}</h1><p class="page-subtitle">Here’s a clear view of your products, orders, and payouts.</p></div><div class="heading-actions"><a class="btn btn-outline" href="{% url 'supplier_order_list' %}">View orders</a><a class="btn btn-gold" href="{% url 'supplier_product_add' %}">＋ Add product</a></div></section>
+<section class="stats-grid" aria-label="Supplier summary">
+  <article class="stat-card"><div><p class="stat-label">Orders to action</p><p class="stat-value">{{ pending_order_count }}</p><p class="stat-note">Pending, accepted, or shipping</p></div><span class="stat-icon">↗</span></article>
+  <article class="stat-card"><div><p class="stat-label">Active products</p><p class="stat-value">{{ active_product_count }}</p><p class="stat-note">Visible in your catalog</p></div><span class="stat-icon">▦</span></article>
+  <article class="stat-card"><div><p class="stat-label">Paid to date</p><p class="stat-value">RM {{ paid_total|floatformat:2 }}</p><p class="stat-note">Recorded payouts</p></div><span class="stat-icon">RM</span></article>
+  <article class="stat-card"><div><p class="stat-label">Awaiting payout</p><p class="stat-value">RM {{ pending_payment_total|floatformat:2 }}</p><p class="stat-note">{{ pending_payments }} confirmed delivery{{ pending_payments|pluralize }}</p></div><span class="stat-icon">◷</span></article>
+</section>
+<div class="content-grid">
+  <section class="card"><div class="card-header"><div><h2>Needs your attention</h2><p class="card-help">A quick list of work waiting on you.</p></div><a class="text-link" href="{% url 'supplier_order_list' %}?view=pending">All orders →</a></div><div class="action-list">
+    {% for order in pending_orders|slice:":3" %}<div class="action-row"><span class="action-bullet"></span><div><strong>PO #{{ order.po_id }} · {{ order.provider.food_bank_name }}</strong><small>{{ order.status }} · RM {{ order.total_amount|floatformat:2 }}</small></div><a class="text-link" href="{% url 'supplier_order_list' %}?view={{ order.status|lower }}#order-{{ order.po_id }}">Open</a></div>{% empty %}<div class="empty-state"><strong>You’re all caught up</strong><p>New provider purchase orders will appear here.</p></div>{% endfor %}
+  </div></section>
+  <section class="card"><div class="card-header"><div><h2>Recently updated</h2><p class="card-help">Your latest purchase orders.</p></div><a class="text-link" href="{% url 'supplier_order_list' %}">Order history →</a></div><div class="activity-list">
+    {% for order in recent_orders %}<div class="activity-item"><div class="activity-primary"><strong>PO #{{ order.po_id }} · {{ order.provider.food_bank_name }}</strong><small>{{ order.created_at|date:"M j, Y" }}</small></div><div class="activity-meta"><strong>RM {{ order.total_amount|floatformat:2 }}</strong><small><span class="pill pill-{{ order.status|lower }}">{{ order.status|lower }}</span></small></div></div>{% empty %}<div class="empty-state"><strong>No orders yet</strong><p>Orders appear after a provider selects your catalog.</p></div>{% endfor %}
+  </div></section>
+</div>
+<div class="notice"><span class="notice-icon">i</span><span><strong>Delivery and payout:</strong> After you mark an order delivered, the provider confirms receipt. The platform admin records the payout after that confirmation.</span></div>
+<section class="card table-card"><div class="table-top"><div><h2>Providers using your catalog</h2><p class="card-help">Providers who have selected your supplier panel.</p></div><a class="text-link" href="{% url 'supplier_panel' %}">See providers →</a></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Provider</th><th>Contact</th><th>Selected since</th><th>Panel status</th></tr></thead><tbody>
+{% for relation in selected_providers %}<tr><td><span class="item-name">{{ relation.provider.food_bank_name }}</span></td><td>{{ relation.provider.user.name }}<br><span class="muted">{{ relation.provider.user.email }}</span></td><td>{{ relation.selected_at|date:"M j, Y" }}</td><td><span class="pill pill-active">Active</span></td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state"><strong>No providers yet</strong><p>Your business appears here when a provider chooses your supplier panel.</p></div></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}
+
+

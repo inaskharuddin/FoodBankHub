@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Needy Portal{% endblock %} · FoodBankHub</title>
+  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}">
+  <link rel="stylesheet" href="{% static 'css/needy_portal.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="needy-body">
+<div class="needy-app">
+  <header class="needy-header">
+    <a class="needy-wordmark" href="{% url 'needy_dashboard' %}"><span>SYSTEM</span><strong>FOODBANK<br>PLATFORM<br>NEEDY</strong></a>
+    <div class="needy-header-meta"><strong>FOODBANKHUB</strong><span>NEEDY PORTAL</span><span>{{ request.user.name }}</span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="needy-logout-button" type="submit">Log out</button></form></div>
+  </header>
+  <main class="needy-main">
+    {% if messages %}<div class="needy-messages">{% for message in messages %}<div class="needy-message notice-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<nav class="needy-bottom-nav" aria-label="Needy shortcuts">
+  <a class="{% if request.resolver_match.url_name == 'needy_dashboard' %}is-active{% endif %}" href="{% url 'needy_dashboard' %}"><span aria-hidden="true">⌂</span><small>[ HOME ]</small></a>
+  <a class="{% if request.resolver_match.url_name == 'needy_scan' %}is-active{% endif %}" href="{% url 'needy_scan' %}"><span aria-hidden="true">▦</span><small>[ SCAN ]</small></a>
+  <a class="{% if request.resolver_match.url_name == 'needy_history' %}is-active{% endif %}" href="{% url 'needy_history' %}"><span aria-hidden="true">◴</span><small>[ HISTORY ]</small></a>
+  <a class="{% if request.resolver_match.url_name == 'needy_provider_finder' %}is-active{% endif %}" href="{% url 'needy_provider_finder' %}"><span aria-hidden="true">⌖</span><small>[ FIND ]</small></a>
+</nav>
+</body>
+</html>

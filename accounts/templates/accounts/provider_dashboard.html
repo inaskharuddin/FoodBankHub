@@ -1,0 +1,59 @@
+{% extends "accounts/provider_base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="eyebrow-green">YOUR FOOD BANK</span><h1>Good day, {{ request.user.name|truncatewords:2 }}</h1><p>Here’s the latest activity for {{ provider.food_bank_name }}.</p></div>
+  <div class="heading-actions"><a class="button button-secondary" href="{% url 'view_forecast' %}">View forecast</a><a class="button" href="{% url 'inventory_add' %}">＋ Add inventory</a></div>
+</section>
+
+{% if low_stock_count %}<div class="notice notice-warning status-callout"><span class="callout-icon">!</span><div><strong>{{ low_stock_count }} inventory item{{ low_stock_count|pluralize }} at or below threshold</strong><p>Review stock alerts and decide whether to create a supplier order.</p></div><a class="button button-secondary" href="{% url 'low_stock_alerts' %}">Review alerts</a></div>{% endif %}
+
+<section class="dashboard-grid" aria-label="Provider summary">
+  <article class="stat-card"><div><span class="stat-label">Inventory items</span><strong class="stat-value">{{ inventory_count }}</strong><span class="stat-note">Food items with tracked stock</span></div><span class="stat-icon">▦</span></article>
+  <article class="stat-card"><div><span class="stat-label">Active urgent needs</span><strong class="stat-value">{{ open_need_count }}</strong><span class="stat-note">Forecast-driven donor needs</span></div><span class="stat-icon red">♡</span></article>
+  <article class="stat-card"><div><span class="stat-label">Open supplier orders</span><strong class="stat-value">{{ active_order_count }}</strong><span class="stat-note">Pending, accepted or shipped</span></div><span class="stat-icon gold">▤</span></article>
+  <article class="stat-card"><div><span class="stat-label">Items needing attention</span><strong class="stat-value">{{ low_stock_count }}</strong><span class="stat-note">At or below your stock threshold</span></div><span class="stat-icon {% if low_stock_count %}red{% else %}blue{% endif %}">{% if low_stock_count %}!{% else %}✓{% endif %}</span></article>
+</section>
+
+<section class="panel" aria-labelledby="quick-actions-title">
+  <div class="panel-heading"><div><span class="eyebrow-green">GET THINGS DONE</span><h2 id="quick-actions-title">Quick actions</h2></div><span class="muted">Common tasks</span></div>
+  <div class="quick-actions">
+    <a class="quick-action" href="{% url 'inventory_list' %}"><span class="quick-action-icon">▦</span><span>View inventory</span><small>See quantities and supplier prices</small></a>
+    <a class="quick-action" href="{% url 'low_stock_alerts' %}"><span class="quick-action-icon">⌕</span><span>Stock alerts</span><small>Review low stock and suggested orders</small></a>
+    <a class="quick-action" href="{% url 'provider_urgent_needs' %}"><span class="quick-action-icon">♡</span><span>Donor needs</span><small>Track funding progress</small></a>
+    <a class="quick-action" href="{% url 'purchase_order_list' %}"><span class="quick-action-icon">▤</span><span>Supplier orders</span><small>Create and track purchase orders</small></a>
+    <a class="quick-action" href="{% url 'view_forecast' %}"><span class="quick-action-icon">⌁</span><span>Demand forecast</span><small>Plan for the next 7 or 30 days</small></a>
+    <a class="quick-action" href="{% url 'provider_self_report_qr' %}"><span class="quick-action-icon">▧</span><span>Get reporting QR</span><small>Let Needy users report distributions</small></a>
+  </div>
+</section>
+
+<section class="workspace-status" aria-label="Food bank setup and system status">
+  <article class="status-tile"><span class="status-tile-icon">◎</span><div><span class="stat-label">Preferred supplier</span>{% if selected_supplier %}<strong>{{ selected_supplier.supplier.business_name }}</strong><small>Supplier panel active</small>{% else %}<strong>No supplier selected</strong><small>Choose an approved supplier to order food</small><a href="{% url 'supplier_list' %}">Choose supplier →</a>{% endif %}</div></article>
+  <article class="status-tile"><span class="status-tile-icon gold">⌁</span><div><span class="stat-label">Latest forecast</span>{% if latest_forecast_run %}<strong>{{ latest_forecast_run.forecast_days }}-day snapshot</strong><small>Saved {{ latest_forecast_run.created_at|date:"M j, Y · H:i" }}</small><a href="{% url 'view_forecast' %}">Open forecast →</a>{% else %}<strong>Not generated yet</strong><small>Add historical demand to start planning</small><a href="{% url 'historical_data' %}">Add demand data →</a>{% endif %}</div></article>
+  <article class="status-tile"><span class="status-tile-icon blue">⌖</span><div><span class="stat-label">Service coverage</span><strong>{{ provider.service_areas.count }} area{{ provider.service_areas.count|pluralize }}</strong><small>Postcodes checked during QR self-reporting</small><a href="{% url 'service_area_manage' %}">Manage areas →</a></div></article>
+</section>
+
+<section class="dashboard-columns" aria-label="Food bank activity charts">
+  <article class="panel chart-panel">
+    <div class="panel-heading"><div><span class="eyebrow-green">DISTRIBUTION MIX</span><h2>Most distributed food</h2></div><a href="{% url 'needy_usage_report' %}">Usage report →</a></div>
+    {% if distributed_items %}<div class="pie-layout"><div class="pie-chart" role="img" aria-label="Pie chart of distributed food quantities" style="background:{{ distribution_pie_style }}"><div class="pie-center"><strong>{{ distributed_total }}</strong><span>reported units</span></div></div><ul class="pie-legend">{% for row in distributed_items %}<li><span class="legend-swatch" style="background:{{ row.color }}"></span><span class="legend-item-name">{{ row.item__name }}<small>{{ row.total }} {{ row.item__unit }}</small></span><strong>{{ row.percent }}%</strong></li>{% endfor %}</ul></div><p class="chart-caption">Share of recorded quantities across food items. Units are shown separately for each item.</p>{% else %}<div class="chart-empty-state"><span>◉</span><p>Distribution reports will appear here as Needy users submit them.</p><a href="{% url 'provider_reports' %}">View reports →</a></div>{% endif %}
+  </article>
+  <article class="panel chart-panel">
+      <div class="panel-heading"><div><span class="eyebrow-green">PAID DONATIONS · LAST 12 MONTHS</span><h2>Collected by month</h2></div><a href="{% url 'provider_donation_monitoring' %}">Contribution details →</a></div>
+      <div class="line-chart-summary"><strong>RM {{ donated_total_amount|floatformat:2 }}</strong><span>paid donations over the last 12 months</span></div><div class="line-chart-wrap"><svg class="donation-line-chart" viewBox="0 0 640 250" role="img" aria-label="Line chart of paid donation value in ringgit, grouped by month and year">
+      {% for tick in donation_line_axis %}<line x1="62" y1="{{ tick.y }}" x2="610" y2="{{ tick.y }}" class="line-grid"></line><text x="54" y="{{ tick.y|add:4 }}" class="line-axis-label" text-anchor="end">{{ tick.amount|floatformat:0 }}</text>{% endfor %}
+      {% if donation_line_points|length > 1 %}<polyline points="{{ donation_line_path }}" class="donation-line"></polyline>{% endif %}
+        {% for point in donation_line_points %}<circle cx="{{ point.x }}" cy="{{ point.y }}" r="5" class="donation-point"><title>{{ point.label }}: RM {{ point.amount|floatformat:2 }}</title></circle>{% if forloop.counter0|divisibleby:2 or forloop.last %}<text x="{{ point.x }}" y="220" class="line-category-label" text-anchor="middle">{{ point.label }}</text>{% endif %}{% endfor %}
+      </svg></div><div class="line-chart-footer"><span>Amount collected (RM)</span><span>Month and year</span></div><p class="chart-caption">Only successful, paid donations are included. Supplier payouts remain an admin action after delivery confirmation.</p>
+  </article>
+</section>
+
+<section class="table-panel">
+  <div class="table-panel-header"><h2>Recent distribution activity</h2><a href="{% url 'provider_reports' %}">View all reports →</a></div>
+  <div class="table-wrap"><table><thead><tr><th>Food item</th><th>Needy user</th><th>Quantity</th><th>Reported</th><th>Status</th></tr></thead><tbody>
+  {% for report in recent_reports %}<tr><td>{{ report.item.name }}</td><td>{{ report.needy.user.name }}</td><td>{{ report.quantity }} {{ report.item.unit }}</td><td>{{ report.reported_at|date:"M j, Y · H:i" }}</td><td><span class="status-badge {% if report.status == 'DISTRIBUTED' or report.status == 'COMPLETED' %}is-done{% else %}is-pending{% endif %}">{{ report.get_status_display|default:report.status }}</span></td></tr>{% empty %}<tr><td colspan="5">No distribution activity has been recorded yet.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="inline-links"><a href="{% url 'provider_settings' %}">Manage food bank profile</a><a href="{% url 'service_area_manage' %}">Manage service areas</a><a href="{% url 'provider_self_report_qr' %}">Download Needy self-report QR</a><a href="{% url 'historical_data' %}">Upload historical demand CSV</a><a href="{% url 'offline_paper_log' %}">Download offline paper log</a></section>
+{% endblock %}

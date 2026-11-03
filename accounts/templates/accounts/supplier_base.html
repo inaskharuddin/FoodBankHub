@@ -1,0 +1,52 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#023020">
+  <title>{% block title %}Supplier portal{% endblock %} · FoodBankHub</title>
+  <link rel="stylesheet" href="{% static 'css/supplier.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="supplier-app">
+  <button class="sidebar-toggle" type="button" aria-label="Open navigation" aria-expanded="false" data-sidebar-toggle>
+    <span></span><span></span><span></span>
+  </button>
+  <div class="app-shell">
+    <aside class="sidebar" id="supplier-sidebar">
+      <a class="brand" href="{% url 'supplier_dashboard' %}">
+        <span class="brand-mark" aria-hidden="true">F</span>
+        <span><strong>FoodBankHub</strong><small>Supplier portal</small></span>
+      </a>
+      <div class="nav-caption">Workspace</div>
+      <nav class="side-nav" aria-label="Supplier navigation">
+        <a class="nav-link {% if active_nav == 'dashboard' %}is-active{% endif %}" href="{% url 'supplier_dashboard' %}"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
+        <a class="nav-link {% if active_nav == 'products' %}is-active{% endif %}" href="{% url 'supplier_product_list' %}"><span class="nav-icon">▦</span><span>Products</span></a>
+        <a class="nav-link {% if active_nav == 'orders' %}is-active{% endif %}" href="{% url 'supplier_order_list' %}"><span class="nav-icon">▤</span><span>Purchase orders</span></a>
+        <a class="nav-link {% if active_nav == 'payouts' %}is-active{% endif %}" href="{% url 'supplier_payout_list' %}"><span class="nav-icon">RM</span><span>Payouts &amp; billing</span></a>
+        <a class="nav-link {% if active_nav == 'panel' %}is-active{% endif %}" href="{% url 'supplier_panel' %}"><span class="nav-icon">♧</span><span>Provider panel</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-account"><span class="account-avatar">{{ request.user.name|first|upper }}</span><span class="account-copy"><strong>{{ request.user.name }}</strong><small>{{ request.user.email }}</small></span></div>
+        <a class="logout-link" href="{% url 'logout' %}"><span aria-hidden="true">↗</span> Sign out</a>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="topbar-left"><span class="breadcrumb-root">Supplier workspace</span><span class="breadcrumb-divider">/</span><span class="breadcrumb-current">{% block breadcrumb %}Dashboard{% endblock %}</span></div>
+        <div class="topbar-right"><span class="today-label" data-today></span><span class="topbar-avatar">{{ request.user.name|first|upper }}</span></div>
+      </header>
+      <div class="page-wrap">
+        {% for message in messages %}<div class="flash flash-{{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+        {% block content %}{% endblock %}
+        <footer class="page-footer"><span>FoodBankHub Supplier Portal</span><span>Building stronger food networks together</span></footer>
+      </div>
+    </main>
+  </div>
+  <div class="sidebar-backdrop" data-sidebar-close></div>
+  <script src="{% static 'js/supplier.js' %}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

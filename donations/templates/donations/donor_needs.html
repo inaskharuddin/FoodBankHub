@@ -1,0 +1,9 @@
+{% extends 'accounts/donor_base.html' %}
+{% block title %}Urgent needs{% endblock %}{% block topbar_title %}Browse urgent needs{% endblock %}
+{% block content %}<h1 class="donor-page-title">Urgent needs</h1><p class="donor-page-intro">Choose an item and quantity. Your donation goes toward the provider’s supplier order.</p>
+<div class="donor-need-grid">{% for need in needs %}<article class="need-card"><div class="provider-card-head"><div><h2>{{ need.item.name }}</h2><p>{{ need.provider.food_bank_name }} · {{ need.item.category }}</p></div><span class="status-badge is-pending">{{ need.remaining_quantity }} {{ need.item.unit }} needed</span></div>
+<div class="need-progress-wrap"><div class="need-progress-label"><span>{{ need.funded_quantity }} {{ need.item.unit }} funded of {{ need.required_quantity }} {{ need.item.unit }}</span><strong>{{ need.progress_percent }}%</strong></div><progress class="need-progress" value="{{ need.progress_percent }}" max="100">{{ need.progress_percent }}%</progress></div>
+<p>Supplier: {{ need.supplier_name }}</p><p>RM {{ need.unit_price|floatformat:2 }} per {{ need.item.unit }} · Target RM {{ need.target_amount|floatformat:2 }}</p>
+<form class="donor-add-form" method="post" action="{% url 'add_need_to_cart' need.urgent_need_id %}">{% csrf_token %}<label>Quantity ({{ need.item.unit }})<input type="number" name="quantity" min="1" max="{{ need.remaining_quantity }}" value="1" list="common-quantities" required></label><button type="submit">Add to cart</button></form>
+<p><a href="{% url 'provider_public_profile' need.provider.provider_id %}">View provider details →</a></p></article>{% empty %}<div class="donor-card donor-empty">There are no open needs available right now. <a href="{% url 'provider_directory' %}">Browse providers</a> to learn more.</div>{% endfor %}</div><datalist id="common-quantities"><option value="1"><option value="5"><option value="10"></datalist>{% endblock %}
+

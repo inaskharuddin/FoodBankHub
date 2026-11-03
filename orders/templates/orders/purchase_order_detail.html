@@ -1,0 +1,29 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Purchase Order {{ order.po_id }}{% endblock %}
+{% block content %}
+<h1>Purchase Order {{ order.po_id }}</h1>
+    <p><a href="{% url 'purchase_order_list' %}">Back to purchase orders</a></p>
+    <p>Supplier: {{ order.supplier.business_name }}</p>
+    <p>Created: {{ order.created_at }}</p>
+    <p>Status: {{ order.status }}</p>
+    {% if order.rejection_reason %}<p>Supplier reason: {{ order.rejection_reason }}</p>{% endif %}
+    {% if order.tracking_number %}<p>Tracking number: {{ order.tracking_number }}</p>{% endif %}
+    {% if order.delivery_note %}<p>Delivery note: {{ order.delivery_note }}</p>{% endif %}
+    <table>
+        <thead><tr><th>Product</th><th>Quantity</th><th>Unit price</th><th>Subtotal</th></tr></thead>
+        <tbody>{% for item in order.items.all %}<tr>
+            <td>{{ item.product.item.name }}</td><td>{{ item.quantity }}</td>
+            <td>{{ item.price }}</td><td>{{ item.subtotal }}</td>
+        </tr>{% empty %}<tr><td colspan="4">No items.</td></tr>{% endfor %}</tbody>
+    </table>
+    <p>Total: {{ order.total_amount }}</p>
+    {% if order.status == "DELIVERED" and not order.delivery_confirmed %}
+        <form method="post" action="{% url 'confirm_purchase_order_delivery' order.po_id %}">{% csrf_token %}<button type="submit">Confirm delivery and update inventory</button></form>
+    {% elif order.delivery_confirmed %}<p>Delivery confirmed; inventory has been updated.</p>{% endif %}
+    {% if order.status == "DELIVERED" and order.delivery_confirmed %}
+      <h2>Rate supplier</h2>
+      {% if supplier_review %}<p>Your rating: {{ supplier_review.rating }}/5 — {{ supplier_review.comment }}</p>{% else %}
+      <form method="post" action="{% url 'rate_supplier' order.po_id %}">{% csrf_token %}<label>Rating <select name="rating"><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label><label>Comment <input name="comment" maxlength="500"></label><button>Submit supplier rating</button></form>{% endif %}
+    {% endif %}
+{% endblock %}
+

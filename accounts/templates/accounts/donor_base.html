@@ -1,0 +1,45 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Donor Portal{% endblock %} · FoodBankHub</title>
+  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}">
+  <link rel="stylesheet" href="{% static 'css/donor_portal.css' %}">
+  <script defer src="{% static 'js/provider_portal.js' %}"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="provider-body donor-body">
+  <div class="provider-shell">
+    <button class="sidebar-scrim" type="button" aria-label="Close navigation" data-sidebar-close></button>
+    <aside class="provider-sidebar" id="provider-sidebar" aria-label="Donor navigation">
+      <a class="brand" href="{% url 'donor_dashboard' %}"><span class="brand-mark">FH</span><span><strong>FoodBankHub</strong><small>Donor workspace</small></span></a>
+      <nav class="provider-nav">
+        <span class="nav-label">YOUR DONATIONS</span>
+        <a class="nav-link {% if request.resolver_match.url_name == 'donor_dashboard' %}is-active{% endif %}" href="{% url 'donor_dashboard' %}"><span class="nav-icon">⌂</span>Dashboard</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'provider_directory' %}is-active{% endif %}" href="{% url 'provider_directory' %}"><span class="nav-icon">⌖</span>Find providers</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'donor_needs' %}is-active{% endif %}" href="{% url 'donor_needs' %}"><span class="nav-icon">♡</span>Urgent needs</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'donor_cart' %}is-active{% endif %}" href="{% url 'donor_cart' %}"><span class="nav-icon">▣</span>Donation cart</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'donation_history' %}is-active{% endif %}" href="{% url 'donation_history' %}"><span class="nav-icon">▤</span>Donation history</a>
+        <span class="nav-label donor-nav-label">ACCOUNT</span>
+        <a class="nav-link {% if request.resolver_match.url_name == 'donor_profile' %}is-active{% endif %}" href="{% url 'donor_profile' %}"><span class="nav-icon">◉</span>My profile</a>
+        <a class="nav-link" href="{% url 'impact_certificate' %}"><span class="nav-icon">✦</span>Impact certificate</a>
+        <a class="nav-link logout-link" href="{% url 'logout' %}"><span class="nav-icon">↪</span>Log out</a>
+      </nav>
+      <div class="sidebar-footer"><span class="avatar avatar-small">{{ request.user.name|first|upper }}</span><span><strong>{{ request.user.name }}</strong><small>{{ request.user.email }}</small></span></div>
+    </aside>
+    <div class="provider-main">
+      <header class="provider-topbar">
+        <button class="menu-toggle" type="button" aria-label="Toggle navigation" title="Toggle navigation" aria-controls="provider-sidebar" aria-expanded="true" data-sidebar-toggle><span></span><span></span><span></span></button>
+        <div class="topbar-title"><span class="eyebrow">FOODBANKHUB · DONOR PORTAL</span><strong>{% block topbar_title %}Welcome, {{ request.user.name }}{% endblock %}</strong></div>
+        <a class="topbar-account" href="{% url 'donor_profile' %}" aria-label="Edit donor profile"><span class="avatar">{{ request.user.name|first|upper }}</span><span class="account-name">{{ request.user.name }}</span></a>
+      </header>
+      <main class="provider-content">
+        {% if messages %}<div class="message-stack">{% for message in messages %}<div class="notice notice-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% block content %}{% endblock %}
+      </main>
+      <footer class="provider-footer">FoodBankHub · Donor Portal <span>Every contribution helps food reach families.</span></footer>
+    </div>
+  </div>
+</body>
+</html>
