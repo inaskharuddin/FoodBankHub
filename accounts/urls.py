@@ -20,6 +20,7 @@ urlpatterns = [
     path("admin/users/<int:user_id>/delete/", views.admin_user_delete, name="admin_user_delete"),
     path("admin/users/<int:user_id>/allowances/<int:usage_id>/update/", views.admin_needy_allowance_update, name="admin_needy_allowance_update"),
     path("provider/settings/", views.provider_settings, name="provider_settings"),
+    path("supplier/settings/", views.supplier_settings, name="supplier_settings"),
 
     path("admin-dashboard/", views.admin_dashboard, name="admin_dashboard"),
     path("admin/approvals/", views.admin_approvals, name="admin_approvals"),
@@ -28,6 +29,8 @@ urlpatterns = [
     path("provider-guide/restart/", views.provider_tour_restart, name="provider_tour_restart"),
     path("donor-dashboard/", views.donor_dashboard, name="donor_dashboard"),
     path("supplier-dashboard/", views.supplier_dashboard, name="supplier_dashboard"),
+    path("supplier-guide/complete/", views.supplier_tour_complete, name="supplier_tour_complete"),
+    path("supplier-guide/restart/", views.supplier_tour_restart, name="supplier_tour_restart"),
     path("supplier-panel/", views.supplier_panel, name="supplier_panel"),
     path("needy-dashboard/", views.needy_dashboard, name="needy_dashboard"),
     path("needy/find/", views.needy_provider_finder, name="needy_provider_finder"),

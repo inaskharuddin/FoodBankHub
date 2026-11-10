@@ -58,6 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True, default="")
     provider_tour_completed = models.BooleanField(default=False)
+    supplier_tour_completed = models.BooleanField(default=False)
     role = models.CharField(
         max_length=20,
         choices=Role.choices,

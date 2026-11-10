@@ -2,8 +2,8 @@
 {% block title %}Purchase orders{% endblock %}
 {% block breadcrumb %}Purchase orders{% endblock %}
 {% block content %}
-<section class="page-heading"><div><p class="eyebrow">Order management</p><h1>Purchase orders</h1><p class="page-subtitle">Review provider requests, confirm availability, and keep delivery details up to date.</p></div></section>
-<div class="tabs" role="navigation" aria-label="Filter orders">
+<section class="page-heading" data-tour="supplier-order-page"><div><p class="eyebrow">Order management</p><h1>Purchase orders</h1><p class="page-subtitle">Review provider requests, confirm availability, and keep delivery details up to date.</p></div></section>
+<div class="tabs" role="navigation" aria-label="Filter orders" data-tour="supplier-order-filters">
   <a class="tab-link {% if view == 'pending' %}is-active{% endif %}" href="?view=pending">Needs action <span class="tab-count">{{ pending_count }}</span></a>
   <a class="tab-link {% if view == 'accepted' %}is-active{% endif %}" href="?view=accepted">Accepted <span class="tab-count">{{ accepted_count }}</span></a>
   <a class="tab-link {% if view == 'shipped' %}is-active{% endif %}" href="?view=shipped">Shipped <span class="tab-count">{{ shipped_count }}</span></a>

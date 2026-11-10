@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.contrib import messages
@@ -805,6 +805,25 @@ def provider_tour_complete(request):
     return JsonResponse({"ok": True})
 
 
+@role_required("SUPPLIER")
+def supplier_tour_complete(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    request.user.supplier_tour_completed = True
+    request.user.save(update_fields=["supplier_tour_completed"])
+    return JsonResponse({"ok": True})
+
+
+@role_required("SUPPLIER")
+def supplier_tour_restart(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    request.user.supplier_tour_completed = False
+    request.user.save(update_fields=["supplier_tour_completed"])
+    messages.success(request, "Your dashboard guide has restarted.")
+    return redirect("supplier_dashboard")
+
+
 @role_required("PROVIDER")
 def provider_tour_restart(request):
     if request.method != "POST":
@@ -947,11 +966,44 @@ def donor_dashboard(request):
 @role_required("SUPPLIER")
 def supplier_dashboard(request):
     from orders.models import PurchaseOrder, Payout
+    from orders.models import POItem
     from distribution.models import ProviderSupplier
+    from django.db.models.functions import TruncMonth
+    from datetime import date
     supplier = request.user.supplier_profile
     orders = PurchaseOrder.objects.filter(supplier=supplier)
     pending_payments = orders.filter(status="DELIVERED", delivery_confirmed=True).exclude(payouts__status="PAID")
     paid_payouts = Payout.objects.filter(supplier=supplier, status="PAID")
+    today = timezone.localdate()
+    current_month = date(today.year, today.month, 1)
+    months = []
+    for offset in range(5, -1, -1):
+        month_number = current_month.year * 12 + current_month.month - 1 - offset
+        year, month_index = divmod(month_number, 12)
+        months.append(date(year, month_index + 1, 1))
+    next_month = date(current_month.year + (current_month.month == 12), current_month.month % 12 + 1, 1)
+    payout_totals = {
+        (row["month"].year, row["month"].month): row["total"] or 0
+        for row in paid_payouts.filter(created_at__date__gte=months[0], created_at__date__lt=next_month)
+        .annotate(month=TruncMonth("created_at")).values("month").annotate(total=Sum("amount"))
+    }
+    volume_totals = {
+        (row["month"].year, row["month"].month): row["total"] or 0
+        for row in POItem.objects.filter(
+            po__supplier=supplier, po__status="DELIVERED", po__delivery_confirmed=True,
+            po__created_at__date__gte=months[0], po__created_at__date__lt=next_month,
+        ).annotate(month=TruncMonth("po__created_at")).values("month").annotate(total=Sum("quantity"))
+    }
+    sales_chart = [{
+        "label": month.strftime("%b %y"),
+        "revenue": float(payout_totals.get((month.year, month.month), 0)),
+        "units": int(volume_totals.get((month.year, month.month), 0)),
+    } for month in months]
+    top_products = list(POItem.objects.filter(
+        po__supplier=supplier, po__status="DELIVERED", po__delivery_confirmed=True,
+    ).values("product__item__name", "product__item__unit").annotate(
+        quantity=Sum("quantity"),
+    ).order_by("-quantity", "product__item__name")[:5])
     return render(request, "accounts/supplier_dashboard.html", {
         "supplier": supplier,
         "active_nav": "dashboard",
@@ -963,6 +1015,58 @@ def supplier_dashboard(request):
         "paid_total": paid_payouts.aggregate(total=Sum("amount"))["total"] or 0,
         "recent_orders": orders.select_related("provider").order_by("-created_at", "-po_id")[:5],
         "selected_providers": ProviderSupplier.objects.filter(supplier=supplier, status="ACTIVE").select_related("provider", "provider__user").order_by("provider__food_bank_name"),
+        "sales_chart": sales_chart,
+        "top_products": top_products,
+    })
+
+
+@role_required("SUPPLIER")
+def supplier_settings(request):
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    supplier = request.user.supplier_profile
+    saved = False
+    error = ""
+    if request.method == "POST":
+        business_name = request.POST.get("business_name", "").strip()
+        contact_person = request.POST.get("contact_person", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        email = request.POST.get("email", "").strip().lower()
+        new_password = request.POST.get("new_password", "")
+        password_confirm = request.POST.get("password_confirm", "")
+        if not all((business_name, contact_person, phone, email)):
+            error = "Please complete all profile fields."
+        elif User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+            error = "That email address is already in use."
+        else:
+            try:
+                validate_email(email)
+                if new_password:
+                    if new_password != password_confirm:
+                        raise ValidationError("The new passwords do not match.")
+                    validate_password(new_password, request.user)
+                with transaction.atomic():
+                    request.user.name = contact_person
+                    request.user.email = email
+                    request.user.phone = phone
+                    if new_password:
+                        request.user.set_password(new_password)
+                    update_fields = ["name", "email", "phone"]
+                    if new_password:
+                        update_fields.append("password")
+                    request.user.save(update_fields=update_fields)
+                    supplier.business_name = business_name
+                    supplier.contact_person = contact_person
+                    supplier.phone = phone
+                    supplier.save(update_fields=["business_name", "contact_person", "phone"])
+                saved = True
+                if new_password:
+                    update_session_auth_hash(request, request.user)
+                messages.success(request, "Your supplier profile has been updated.")
+            except ValidationError as exc:
+                error = " ".join(exc.messages)
+    return render(request, "accounts/supplier_settings.html", {
+        "supplier": supplier, "saved": saved, "error": error, "active_nav": "settings",
     })
 
 

@@ -2,20 +2,36 @@
 {% block title %}Dashboard{% endblock %}
 {% block breadcrumb %}Dashboard{% endblock %}
 {% block content %}
-<section class="page-heading"><div><p class="eyebrow">Supplier workspace</p><h1>Good day, {{ request.user.name|default:supplier.business_name }}</h1><p class="page-subtitle">Here’s a clear view of your products, orders, and payouts.</p></div><div class="heading-actions"><a class="btn btn-outline" href="{% url 'supplier_order_list' %}">View orders</a><a class="btn btn-gold" href="{% url 'supplier_product_add' %}">＋ Add product</a></div></section>
+<section class="page-heading"><div><p class="eyebrow-green">SUPPLIER WORKSPACE</p><h1>Good day, {{ supplier.business_name }}</h1><p class="page-subtitle">Here’s a clear view of your products, orders, and payouts.</p></div><div class="heading-actions"><a class="btn btn-outline" href="{% url 'supplier_order_list' %}">View orders</a><a class="btn btn-gold" href="{% url 'supplier_product_add' %}">＋ Add product</a></div></section>
 <section class="stats-grid" aria-label="Supplier summary">
   <article class="stat-card"><div><p class="stat-label">Orders to action</p><p class="stat-value">{{ pending_order_count }}</p><p class="stat-note">Pending, accepted, or shipping</p></div><span class="stat-icon">↗</span></article>
   <article class="stat-card"><div><p class="stat-label">Active products</p><p class="stat-value">{{ active_product_count }}</p><p class="stat-note">Visible in your catalog</p></div><span class="stat-icon">▦</span></article>
   <article class="stat-card"><div><p class="stat-label">Paid to date</p><p class="stat-value">RM {{ paid_total|floatformat:2 }}</p><p class="stat-note">Recorded payouts</p></div><span class="stat-icon">RM</span></article>
   <article class="stat-card"><div><p class="stat-label">Awaiting payout</p><p class="stat-value">RM {{ pending_payment_total|floatformat:2 }}</p><p class="stat-note">{{ pending_payments }} confirmed delivery{{ pending_payments|pluralize }}</p></div><span class="stat-icon">◷</span></article>
 </section>
-<div class="content-grid">
-  <section class="card"><div class="card-header"><div><h2>Needs your attention</h2><p class="card-help">A quick list of work waiting on you.</p></div><a class="text-link" href="{% url 'supplier_order_list' %}?view=pending">All orders →</a></div><div class="action-list">
-    {% for order in pending_orders|slice:":3" %}<div class="action-row"><span class="action-bullet"></span><div><strong>PO #{{ order.po_id }} · {{ order.provider.food_bank_name }}</strong><small>{{ order.status }} · RM {{ order.total_amount|floatformat:2 }}</small></div><a class="text-link" href="{% url 'supplier_order_list' %}?view={{ order.status|lower }}#order-{{ order.po_id }}">Open</a></div>{% empty %}<div class="empty-state"><strong>You’re all caught up</strong><p>New provider purchase orders will appear here.</p></div>{% endfor %}
-  </div></section>
-  <section class="card"><div class="card-header"><div><h2>Recently updated</h2><p class="card-help">Your latest purchase orders.</p></div><a class="text-link" href="{% url 'supplier_order_list' %}">Order history →</a></div><div class="activity-list">
-    {% for order in recent_orders %}<div class="activity-item"><div class="activity-primary"><strong>PO #{{ order.po_id }} · {{ order.provider.food_bank_name }}</strong><small>{{ order.created_at|date:"M j, Y" }}</small></div><div class="activity-meta"><strong>RM {{ order.total_amount|floatformat:2 }}</strong><small><span class="pill pill-{{ order.status|lower }}">{{ order.status|lower }}</span></small></div></div>{% empty %}<div class="empty-state"><strong>No orders yet</strong><p>Orders appear after a provider selects your catalog.</p></div>{% endfor %}
-  </div></section>
+<section class="supplier-journey panel" aria-labelledby="supplier-journey-title">
+  <div class="panel-heading"><div><span class="eyebrow-green">ORDER PROCESS</span><h2 id="supplier-journey-title">From order to payment</h2></div><a href="{% url 'supplier_order_list' %}">View purchase orders →</a></div>
+  <ol class="supplier-journey-list">
+    <li id="supplier-tour-step-1"><span>1</span><strong>View order</strong><small>Review new provider purchase orders.</small></li>
+    <li id="supplier-tour-step-2"><span>2</span><strong>Accept or reject</strong><small>Check items and stock, then respond.</small></li>
+    <li id="supplier-tour-step-3"><span>3</span><strong>Ship the items</strong><small>Pack the order and update delivery status.</small></li>
+    <li id="supplier-tour-step-4"><span>4</span><strong>Provider confirms</strong><small>The provider confirms the delivery arrived.</small></li>
+    <li id="supplier-tour-step-5"><span>5</span><strong>Receive payment</strong><small>Admin records payout after confirmation.</small></li>
+    <li id="supplier-tour-step-6"><span>6</span><strong>Order complete</strong><small>Review the final status in order history.</small></li>
+  </ol>
+</section>
+<div class="content-grid supplier-chart-grid" data-tour="supplier-performance">
+  <section class="panel supplier-chart-card"><div class="panel-heading"><div><span class="eyebrow-green">LAST 6 MONTHS</span><h2>Sales &amp; payout trend</h2><p>Confirmed order volume and recorded payments.</p></div><a href="{% url 'supplier_payout_list' %}">View payouts →</a></div>
+    <div class="supplier-chart-legend"><span><i class="legend-revenue"></i>Revenue (RM)</span><span><i class="legend-volume"></i>Units sold</span></div>
+    <canvas data-sales-chart aria-label="Monthly payout revenue and delivered order volume for the last six months"></canvas>
+    <p class="chart-caption">Revenue is based on payouts marked paid. Units sold count provider-confirmed deliveries.</p>
+    {{ sales_chart|json_script:"supplier-sales-data" }}
+  </section>
+  <section class="panel supplier-chart-card"><div class="panel-heading"><div><span class="eyebrow-green">BEST SELLERS</span><h2>Top ordered items</h2><p>The five items with the most confirmed units delivered.</p></div><a href="{% url 'supplier_product_list' %}">Manage products →</a></div>
+    <div data-top-products-chart aria-label="Top five products by delivered units"></div>
+    {% if not top_products %}<div class="chart-empty supplier-chart-empty">Completed item sales will appear here.</div>{% endif %}
+    {{ top_products|json_script:"supplier-top-products-data" }}
+  </section>
 </div>
 <div class="notice"><span class="notice-icon">i</span><span><strong>Delivery and payout:</strong> After you mark an order delivered, the provider confirms receipt. The platform admin records the payout after that confirmation.</span></div>
 <section class="card table-card"><div class="table-top"><div><h2>Providers using your catalog</h2><p class="card-help">Providers who have selected your supplier panel.</p></div><a class="text-link" href="{% url 'supplier_panel' %}">See providers →</a></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Provider</th><th>Contact</th><th>Selected since</th><th>Panel status</th></tr></thead><tbody>

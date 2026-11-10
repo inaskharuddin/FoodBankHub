@@ -1,12 +1,18 @@
 from datetime import timedelta
 import csv
 import io
+import ipaddress
+import socket
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+from uuid import uuid4
 from decimal import Decimal, InvalidOperation
 from math import ceil
 
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Sum
+from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -30,6 +36,59 @@ def _sync_supplier_product_prices(product):
 def _whole_number(value):
     value = str(value or "").strip()
     return int(value) if value.isascii() and value.isdecimal() else None
+
+
+def _verify_product_image(image_file):
+    from PIL import Image, UnidentifiedImageError
+    if not image_file or image_file.size > 5 * 1024 * 1024:
+        raise ValueError("Upload a product image up to 5 MB.")
+    try:
+        image_file.seek(0)
+        with Image.open(image_file) as image:
+            if image.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValueError("Use a JPG, PNG, or WEBP product image.")
+            image.verify()
+        image_file.seek(0)
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        raise ValueError("The selected file is not a valid product image.")
+    return image_file
+
+
+def _download_csv_product_image(url):
+    from PIL import Image, UnidentifiedImageError
+    from urllib.error import HTTPError, URLError
+
+    parts = urlsplit(url)
+    if parts.scheme != "https" or not parts.hostname or parts.username or parts.password or parts.port not in (None, 443):
+        raise ValueError("Invalid Image_URL (use a public HTTPS image link).")
+    try:
+        addresses = {ipaddress.ip_address(info[4][0]) for info in socket.getaddrinfo(parts.hostname, 443, type=socket.SOCK_STREAM)}
+        if not addresses or any(not address.is_global for address in addresses):
+            raise ValueError("Invalid Image_URL (private or local hosts are not allowed).")
+        class NoRedirect(HTTPRedirectHandler):
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                return None
+        opener = build_opener()
+        opener.handlers = [handler for handler in opener.handlers if not isinstance(handler, HTTPRedirectHandler)]
+        opener.add_handler(NoRedirect())
+        request = Request(url, headers={"User-Agent": "FoodBankHub product image importer"})
+        with opener.open(request, timeout=5) as response:
+            if response.status != 200 or not response.headers.get_content_type().startswith("image/"):
+                raise ValueError("Invalid Image_URL (the link must return an image).")
+            data = response.read(5 * 1024 * 1024 + 1)
+        if len(data) > 5 * 1024 * 1024:
+            raise ValueError("Image_URL file is larger than 5 MB.")
+        with Image.open(io.BytesIO(data)) as image:
+            if image.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValueError("Invalid Image_URL (use a JPG, PNG, or WEBP image).")
+            image_format = image.format
+            image.verify()
+        extension = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp"}[image_format]
+        return ContentFile(data, name=f"bulk-{uuid4().hex}{extension}")
+    except ValueError:
+        raise
+    except (OSError, HTTPError, URLError, TimeoutError, socket.gaierror, UnidentifiedImageError, Image.DecompressionBombError):
+        raise ValueError("Invalid Image_URL (the image could not be reached or read).")
 
 
 @role_required("PROVIDER")
@@ -136,7 +195,7 @@ def supplier_product_list(request):
 @role_required("SUPPLIER")
 def supplier_product_csv_template(request):
     from django.http import HttpResponse
-    response = HttpResponse("name,category,unit,price,stock\nRice,Grains,kg,3.20,100\n", content_type="text/csv")
+    response = HttpResponse("name,category,unit,price,stock,Image_URL\n", content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="foodbankhub-products-template.csv"'
     return response
 
@@ -144,35 +203,49 @@ def supplier_product_csv_template(request):
 @role_required("SUPPLIER")
 def supplier_product_upload(request):
     error = ""
+    row_errors = []
     if request.method == "POST":
         upload = request.FILES.get("csv_file")
         if not upload or not upload.name.lower().endswith(".csv"):
             error = "Choose a CSV file."
+        elif upload.size > 2 * 1024 * 1024:
+            error = "CSV files must be 2 MB or smaller."
         else:
             try:
                 reader = csv.DictReader(io.StringIO(upload.read().decode("utf-8-sig")))
-                required = {"name", "category", "unit", "price", "stock"}
+                required = {"name", "category", "unit", "price", "stock", "image_url"}
                 if not reader.fieldnames or not required.issubset({field.strip().lower() for field in reader.fieldnames}):
-                    raise ValueError("CSV needs name, category, unit, price, and stock columns.")
+                    raise ValueError("CSV needs name, category, unit, price, stock, and Image_URL columns.")
                 rows = []
-                for row in reader:
+                for row_number, row in enumerate(reader, start=2):
                     normalized = {key.strip().lower(): (value or "").strip() for key, value in row.items() if key}
-                    price = Decimal(normalized["price"])
-                    stock = _whole_number(normalized["stock"])
-                    if not all(normalized.get(key) for key in ("name", "category", "unit")) or price < 0 or stock is None:
-                        raise ValueError("Every row needs product details, a valid price, and whole-number stock.")
-                    rows.append((normalized, price, stock))
+                    try:
+                        if not all(normalized.get(key) for key in ("name", "category", "unit", "image_url")):
+                            raise ValueError("Missing product details or Image_URL.")
+                        price = Decimal(normalized["price"])
+                        stock = _whole_number(normalized["stock"])
+                        if not price.is_finite() or price < 0 or stock is None:
+                            raise ValueError("Invalid price or stock quantity.")
+                        image = _download_csv_product_image(normalized["image_url"])
+                        rows.append((normalized, price, stock, image))
+                    except (InvalidOperation, KeyError, ValueError) as exc:
+                        row_errors.append(f"Row {row_number}: {exc}")
                 if not rows:
-                    raise ValueError("The CSV has no product rows.")
-                supplier = request.user.supplier_profile
-                with transaction.atomic():
-                    for row, price, stock in rows:
-                        item = Item.objects.create(name=row["name"][:200], category=row["category"][:100], unit=row["unit"][:50])
-                        SupplierProduct.objects.create(supplier=supplier, item=item, price=price, stock=stock)
-                return redirect("supplier_product_list")
-            except (UnicodeDecodeError, csv.Error, InvalidOperation, KeyError, ValueError) as exc:
+                    error = "No valid products were added. Fix the rows listed below and upload the CSV again."
+                else:
+                    supplier = request.user.supplier_profile
+                    with transaction.atomic():
+                        for row, price, stock, image in rows:
+                            item = Item.objects.create(name=row["name"][:200], category=row["category"][:100], unit=row["unit"][:50])
+                            SupplierProduct.objects.create(supplier=supplier, item=item, price=price, stock=stock, image=image)
+                    messages.success(request, f"Added {len(rows)} product(s) with valid images.")
+                    return render(request, "inventory/supplier_product_upload.html", {
+                        "active_nav": "products", "row_errors": row_errors,
+                        "success_count": len(rows), "error": error,
+                    })
+            except (UnicodeDecodeError, csv.Error, ValueError) as exc:
                 error = str(exc) or "Check the CSV format and try again."
-    return render(request, "inventory/supplier_product_upload.html", {"active_nav": "products", "error": error})
+    return render(request, "inventory/supplier_product_upload.html", {"active_nav": "products", "error": error, "row_errors": row_errors})
 
 
 @role_required("SUPPLIER")
@@ -182,16 +255,20 @@ def supplier_product_add(request):
         name = request.POST.get("product_name", "").strip()
         category = request.POST.get("category", "").strip()
         unit = request.POST.get("unit", "").strip()
+        image = request.FILES.get("image")
         try:
             price = Decimal(request.POST.get("price", "").strip())
             stock = _whole_number(request.POST.get("stock"))
-            if not name or not category or not unit or price < 0 or stock is None:
+            if not name or not category or not unit or not price.is_finite() or price < 0 or stock is None:
                 raise ValueError
-        except (InvalidOperation, ValueError):
-            error = "Enter product details, a non-negative price, and whole-number stock."
+            if not image:
+                raise ValueError("Product image is required for donors to see.")
+            _verify_product_image(image)
+        except (InvalidOperation, ValueError) as exc:
+            error = str(exc) or "Enter product details, a non-negative price, and whole-number stock."
         else:
             item = Item.objects.create(name=name, category=category, unit=unit)
-            SupplierProduct.objects.create(supplier=request.user.supplier_profile, item=item, price=price, stock=stock, status="ACTIVE")
+            SupplierProduct.objects.create(supplier=request.user.supplier_profile, item=item, price=price, stock=stock, image=image, status="ACTIVE")
             return redirect("supplier_product_list")
     return render(request, "inventory/supplier_product_add.html", {"active_nav": "products", "error": error})
 
@@ -205,12 +282,19 @@ def supplier_product_edit(request, product_id):
             price = Decimal(request.POST.get("price", "").strip())
             stock = _whole_number(request.POST.get("stock"))
             status = request.POST.get("status", "ACTIVE")
-            if price < 0 or stock is None or status not in {"ACTIVE", "INACTIVE"}:
+            image = request.FILES.get("image")
+            if not price.is_finite() or price < 0 or stock is None or status not in {"ACTIVE", "INACTIVE"}:
                 raise ValueError
-        except (InvalidOperation, ValueError):
-            error = "Enter a valid non-negative price and whole-number stock."
+            if image:
+                _verify_product_image(image)
+            elif not product.image:
+                raise ValueError("Product image is required for donors to see.")
+        except (InvalidOperation, ValueError) as exc:
+            error = str(exc) or "Enter a valid non-negative price and whole-number stock."
         else:
             product.price, product.stock, product.status = price, stock, status
+            if image:
+                product.image = image
             product.save()
             _sync_supplier_product_prices(product)
             return redirect("supplier_product_list")

@@ -23,6 +23,8 @@ class SupplierProduct(models.Model):
         decimal_places=2
     )
 
+    image = models.ImageField(upload_to="supplier_products/", null=True, blank=True)
+
     stock = models.PositiveIntegerField(default=0)
 
     status = models.CharField(

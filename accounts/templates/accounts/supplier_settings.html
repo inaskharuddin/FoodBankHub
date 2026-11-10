@@ -1,0 +1,19 @@
+{% extends "accounts/supplier_base.html" %}
+{% block title %}Supplier profile{% endblock %}
+{% block breadcrumb %}Profile management{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow-green">ACCOUNT</span><h1>Profile management</h1><p>Update your business contact details and account email.</p></div><form method="post" action="{% url 'supplier_tour_restart' %}" data-tour-restart-form>{% csrf_token %}<button class="button button-secondary" type="submit">Restart dashboard guide</button></form></section>
+{% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+<section class="settings-layout"><div class="form-panel supplier-profile-form">
+  <h2>Business profile</h2><p class="muted">These details help providers identify and contact your business.</p>
+  <form method="post">{% csrf_token %}
+    <label for="supplier-business-name">Business name</label><input id="supplier-business-name" name="business_name" value="{{ supplier.business_name }}" maxlength="200" required>
+    <label for="supplier-contact-person">Contact person</label><input id="supplier-contact-person" name="contact_person" value="{{ supplier.contact_person }}" maxlength="100" autocomplete="name" required>
+    <label for="supplier-email">Account email</label><input id="supplier-email" name="email" type="email" value="{{ request.user.email }}" autocomplete="email" required>
+    <label for="supplier-phone">Contact phone</label><input id="supplier-phone" name="phone" value="{{ supplier.phone }}" maxlength="20" autocomplete="tel" required>
+    <label for="supplier-new-password">New password</label><input id="supplier-new-password" name="new_password" type="password" autocomplete="new-password" minlength="8"><small class="field-help">Leave blank to keep your current password.</small>
+    <label for="supplier-password-confirm">Confirm password</label><input id="supplier-password-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8">
+    <div class="form-actions"><button class="button" type="submit">Save profile</button><a class="button button-secondary" href="{% url 'supplier_dashboard' %}">Cancel</a></div>
+  </form>
+</div><aside class="panel supplier-locked-details"><span class="quick-action-icon">♧</span><h2>Registration details</h2><p>These verified details are locked to protect your supplier account. Contact an administrator if they need to be corrected.</p><dl><dt>SSM registration number</dt><dd>{{ supplier.ssm_registration_no }}</dd><dt>Business license</dt><dd>{% if supplier.business_license %}On file{% else %}Not available{% endif %}</dd><dt>Bank name</dt><dd>{{ supplier.bank_name }}</dd><dt>Bank account</dt><dd>Ending {{ supplier.bank_account|slice:"-4:" }}</dd></dl></aside></section>
+{% endblock %}

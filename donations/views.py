@@ -60,25 +60,10 @@ def donor_profile(request):
 
 @role_required("DONOR")
 def donor_needs(request):
-    need_rows = UrgentNeed.objects.filter(
-        status="OPEN", remaining_quantity__gt=0, required_quantity__gt=0,
-    ).select_related("provider", "item").order_by("created_at", "urgent_need_id")
-    needs = []
-    for need in need_rows:
-        relationship = ProviderSupplier.objects.filter(
-            provider=need.provider, status="ACTIVE",
-        ).select_related("supplier").first()
-        product = relationship.supplier.products.filter(
-            item=need.item, status="ACTIVE",
-        ).first() if relationship else None
-        if not product:
-            continue
-        need.supplier_name = relationship.supplier.business_name
-        need.unit_price = product.price
-        need.target_amount = (product.price * need.required_quantity).quantize(Decimal("0.01"))
-        need.progress_percent = int(need.funded_quantity * 100 / need.required_quantity) if need.required_quantity else 0
-        needs.append(need)
-    return render(request, "donations/donor_needs.html", {"needs": needs})
+    providers = Provider.objects.filter(
+        is_approved=True, user__is_active=True,
+    ).select_related("user").order_by("food_bank_name")
+    return render(request, "donations/donor_needs.html", {"providers": providers})
 
 
 @role_required("DONOR")
@@ -133,19 +118,16 @@ def add_need_to_cart(request, need_id):
         item.save()
         cart.total_amount = sum(cart.items.values_list("subtotal", flat=True), Decimal("0.00"))
         cart.save(update_fields=["total_amount"])
-    return redirect("donor_needs")
+    return redirect("provider_public_profile", provider_id=need.provider_id)
 
 
 @role_required("DONOR")
 def provider_directory(request):
-    providers = Provider.objects.select_related("user").prefetch_related("urgent_needs__item").order_by("food_bank_name")
+    providers = Provider.objects.filter(is_approved=True, user__is_active=True).select_related("user").order_by("food_bank_name")
     provider_data = []
     for provider in providers:
-        needs = [n for n in provider.urgent_needs.all() if n.status == "OPEN" and n.remaining_quantity > 0]
-        for need in needs:
-            need.progress_percent = int(need.funded_quantity * 100 / need.required_quantity) if need.required_quantity else 0
         provider_data.append({
-            "provider": provider, "needs": needs,
+            "provider": provider,
             "lat": float(provider.latitude) if provider.latitude is not None else None,
             "lng": float(provider.longitude) if provider.longitude is not None else None,
         })
@@ -156,20 +138,28 @@ def provider_directory(request):
             "address": d["provider"].address,
             "lat": d["lat"], "lng": d["lng"],
             "url": reverse("provider_public_profile", args=[d["provider"].provider_id]),
-            "needs": [n.item.name for n in d["needs"]],
         } for d in provider_data if d["lat"] is not None and d["lng"] is not None],
     })
 
 @role_required("DONOR")
 def provider_public_profile(request, provider_id):
     provider = get_object_or_404(Provider.objects.select_related("user"), provider_id=provider_id)
-    needs = provider.urgent_needs.filter(status="OPEN", remaining_quantity__gt=0).select_related("item")
+    relationship = ProviderSupplier.objects.filter(provider=provider, status="ACTIVE").select_related("supplier").first()
+    product_by_item = {
+        product.item_id: product
+        for product in relationship.supplier.products.filter(status="ACTIVE", image__gt="").select_related("item")
+    } if relationship else {}
+    needs = [need for need in provider.urgent_needs.filter(
+        status="OPEN", remaining_quantity__gt=0,
+    ).select_related("item").order_by("created_at") if need.item_id in product_by_item]
     for need in needs:
         need.progress_percent = int(need.funded_quantity * 100 / need.required_quantity) if need.required_quantity else 0
+        need.product = product_by_item[need.item_id]
+        need.supplier_name = relationship.supplier.business_name
     relationships = ProviderSupplier.objects.filter(provider=provider, status="ACTIVE").select_related("supplier").prefetch_related("supplier__products__item")
     suppliers = [{
         "supplier": rel.supplier,
-        "products": rel.supplier.products.filter(status="ACTIVE").select_related("item"),
+        "products": rel.supplier.products.filter(status="ACTIVE", image__gt="").select_related("item"),
     } for rel in relationships]
     return render(request, "donations/provider_profile.html", {
         "provider": provider, "needs": needs, "suppliers": suppliers,
@@ -203,6 +193,11 @@ def donor_cart(request):
         cart.save(update_fields=["total_amount"])
         return redirect("donor_cart")
     items = cart.items.select_related("provider", "urgent_need__item") if cart else []
+    for item in items:
+        relation = ProviderSupplier.objects.filter(provider=item.provider, status="ACTIVE").select_related("supplier").first()
+        product = relation.supplier.products.filter(item=item.urgent_need.item, status="ACTIVE").first() if relation else None
+        item.product_image = product.image if product and product.image else None
+        item.supplier_name = relation.supplier.business_name if relation else ""
     return render(request, "donations/donor_cart.html", {"cart": cart, "items": items})
 
 

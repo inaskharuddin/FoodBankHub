@@ -6,9 +6,9 @@
 {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
 <section class="card form-card"><div class="card-header"><div><h2>Import product list</h2><p class="card-help">We check every row before adding anything to your catalog.</p></div></div>
 <form method="post" enctype="multipart/form-data" action="{% url 'supplier_product_upload' %}">{% csrf_token %}
-  <input class="file-input" id="csv-file" type="file" name="csv_file" accept=".csv,text/csv" required data-csv-input>
+  <input class="file-input" id="csv-file" type="file" name="csv_file" accept=".csv,text/csv" required data-csv-input data-tour="supplier-csv-input">
   <label class="drop-zone" for="csv-file" tabindex="0" role="button" data-drop-zone><span aria-hidden="true" style="font-size:25px">⇧</span><strong>Drop your CSV file here</strong><small>or <span data-browse style="color:#126442;font-weight:700">browse files</span> from your device</small><span class="file-name" data-file-name></span></label>
-  <div class="csv-help"><strong>Required columns</strong><br><code>name, category, unit, price, stock</code><br>Example: Rice, Grains, kg, 3.20, 100<br><a class="text-link" href="{% url 'supplier_product_csv_template' %}">Download the ready-to-use CSV template</a></div>
+  <div class="csv-help"><strong>Required columns</strong><br><code>name, category, unit, price, stock, Image_URL</code><br>Image_URL must be a public HTTPS link to a JPG, PNG, or WEBP image (max 5 MB). Only rows with valid images are added to your catalog.<br><a class="text-link" href="{% url 'supplier_product_csv_template' %}">Download the ready-to-use CSV template</a></div>
   <div class="form-actions"><a class="btn btn-outline" href="{% url 'supplier_product_list' %}">Cancel</a><button class="btn btn-gold" type="submit">Upload products</button></div>
-</form></section>
+</form>{% if success_count %}<div class="notice notice-success" role="status">Added {{ success_count }} valid product(s) to your catalog.</div>{% endif %}{% if row_errors %}<section class="csv-error-report" role="alert"><h3>Some rows need attention</h3><p>Products in these rows were not added. Correct them and upload again.</p><ul>{% for row_error in row_errors %}<li>{{ row_error }}</li>{% endfor %}</ul></section>{% endif %}</section>
 {% endblock %}
