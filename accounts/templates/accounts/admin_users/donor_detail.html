@@ -1,0 +1,6 @@
+{% extends 'accounts/admin_user_detail_base.html' %}
+{% block title %}Donor details · {{ account.name }}{% endblock %}
+{% block topbar_title %}Donor details{% endblock %}
+{% block detail_heading %}{{ account.name }}{% endblock %}
+{% block role_fields %}<h2 class="admin-detail-subheading">Registration details</h2><div class="admin-detail-grid"><label>Phone number<output class="admin-readonly-note">{{ account.phone|default:"Not provided" }}</output></label></div>{% endblock %}
+{% block related_records %}<section class="admin-section"><h2>Donation impact</h2><p class="admin-section-intro">Total paid donations since joining: <strong>RM {{ admin_donation_total|floatformat:2 }}</strong></p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Date</th><th>Donation</th><th>Amount</th><th>Status</th></tr></thead><tbody>{% for donation in admin_donations %}<tr><td>{{ donation.created_at|date:"d M Y H:i" }}</td><td>Donation {{ donation.donation_id }}</td><td>RM {{ donation.total_amount|floatformat:2 }}</td><td>{{ donation.status|title }}</td></tr>{% empty %}<tr><td colspan="4">No donation history.</td></tr>{% endfor %}</tbody></table></div></section>{% endblock %}

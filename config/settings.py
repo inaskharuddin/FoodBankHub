@@ -42,7 +42,7 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-#ALLOWED_HOSTS = ['127.0.0.1', 'localhost'] #test
+#ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
@@ -80,6 +80,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'config.middleware.UserFriendlyErrorMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -94,6 +95,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.admin_approval_counts',
             ],
         },
     },

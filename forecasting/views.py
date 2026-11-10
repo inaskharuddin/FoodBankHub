@@ -69,11 +69,42 @@ def _month_start(offset=0):
 
 
 def _render_page(request, supplier_relationship, products, history):
+    item_options = list(history.values("item_id", "item__name", "item__unit").distinct().order_by("item__name"))
+    month_options = [{
+        "value": month.strftime("%Y-%m"),
+        "label": month.strftime("%B %Y"),
+    } for month in history.dates("date", "month", order="DESC")]
+    selected_item = request.GET.get("item", "").strip()
+    selected_month = request.GET.get("month", "").strip()
+    filtered_history = []
+    selected_item_name = ""
+    try:
+        month_date = date.fromisoformat(f"{selected_month}-01")
+        valid_month = month_date.strftime("%Y-%m") == selected_month
+    except ValueError:
+        month_date = None
+        valid_month = False
+    item_by_id = {str(row["item_id"]): row for row in item_options}
+    if selected_item in item_by_id and valid_month:
+        selected_item_name = item_by_id[selected_item]["item__name"]
+        filtered_history = history.filter(
+            item_id=int(selected_item), date__year=month_date.year, date__month=month_date.month,
+        ).order_by("date", "history_id")
+    else:
+        selected_item = ""
+        selected_month = ""
     return render(request, "forecasting/historical_data.html", {
         "supplier_relationship": supplier_relationship,
         "products": products,
-        "history": history,
-        "months": ((_month_start(-2), "Month 1"), (_month_start(-1), "Month 2"), (_month_start(0), "Month 3")),
+        "history": filtered_history,
+        "has_history": bool(item_options),
+        "item_options": item_options,
+        "month_options": month_options,
+        "selected_item": selected_item,
+        "selected_item_name": selected_item_name,
+        "selected_month": selected_month,
+        "selected_month_label": month_date.strftime("%B %Y") if selected_month else "",
+        "months": (_month_start(-3), _month_start(-2), _month_start(-1)),
     })
 
 
@@ -157,7 +188,7 @@ def historical_data(request):
         entries = []
         try:
             for product in products:
-                for month_number, offset in enumerate((-2, -1, 0), start=1):
+                for month_number, offset in enumerate((-3, -2, -1), start=1):
                     raw = request.POST.get(f"month_{month_number}_{product.product_id}", "").strip()
                     quantity = int(raw)
                     if quantity < 0:

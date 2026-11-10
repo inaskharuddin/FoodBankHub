@@ -1,27 +1,10 @@
 {% extends 'accounts/provider_base.html' %}
 {% block title %}Create Purchase Order{% endblock %}
 {% block content %}
-<h1>Create Purchase Order</h1>
-    <p><a href="{% url 'purchase_order_list' %}">Back to purchase orders</a></p>
-    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
-    {% if products %}
-    <form method="post">
-        {% csrf_token %}
-        <table>
-            <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Quantity</th></tr></thead>
-            <tbody>
-            {% for product in products %}
-                <tr>
-                    <td>{{ product.item.name }}</td>
-                    <td>{{ product.price }}</td>
-                    <td>{{ product.stock }}</td>
-                    <td><input type="number" name="quantity_{{ product.product_id }}" min="0" max="{{ product.stock }}" value="{{ product.suggested_quantity|default:0 }}"></td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        <button type="submit">Create purchase order</button>
-    </form>
-    {% else %}<p>No active products are available from your selected supplier.</p>{% endif %}
+<section class="page-heading"><div><span class="eyebrow-green">PROCUREMENT</span><h1>Create purchase order</h1><p>Only food needs with 100% completed, paid donor funding can be ordered.</p></div><div class="heading-actions"><a class="button button-secondary" href="{% url 'purchase_order_list' %}">Back to orders</a></div></section>
+{% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+<div class="notice notice-info">Each selected item must be fully funded, and the supplier must have enough stock for the funded quantity. Orders are limited to the quantity donors have fully funded.</div>
+{% if products %}<section class="table-panel"><div class="table-panel-header"><div><span class="eyebrow-green">{{ eligible_count }} READY TO ORDER</span><h2>{{ relationship.supplier.business_name|default:"Selected supplier" }} catalog</h2></div></div><form method="post">{% csrf_token %}<div class="table-wrap"><table><thead><tr><th>Food item</th><th>Unit price</th><th>Funded quantity</th><th>Supplier stock</th><th>Funding status</th><th>Order quantity</th></tr></thead><tbody>
+{% for product in products %}<tr><td><strong>{{ product.item.name }}</strong><small class="cell-subtitle">{{ product.item.category }} · {{ product.item.unit }}</small></td><td>RM {{ product.price|floatformat:2 }}</td><td>{% if product.funded_need %}{{ product.funded_need.funded_quantity }} / {{ product.funded_need.required_quantity }} {{ product.item.unit }}{% else %}—{% endif %}</td><td>{{ product.stock }} {{ product.item.unit }}</td><td>{% if product.orderable %}<span class="status-badge is-done">100% funded</span>{% else %}<span class="status-badge is-pending">Not ready</span><small class="cell-subtitle">{{ product.order_block_reason }}</small>{% endif %}</td><td><input type="number" name="quantity_{{ product.product_id }}" min="0" max="{{ product.stock }}" value="{{ product.suggested_quantity|default:0 }}" {% if product.orderable %}readonly aria-label="Fully funded quantity for {{ product.item.name }}"{% else %}disabled aria-label="{{ product.item.name }} is not eligible for ordering"{% endif %}></td></tr>{% endfor %}
+</tbody></table></div><div class="form-actions"><button type="submit" {% if not eligible_count %}disabled{% endif %}>{% if eligible_count %}Create purchase order{% else %}No fully funded items to order{% endif %}</button></div></form></section>{% else %}<div class="empty-state panel"><span class="empty-icon">▤</span><h3>No active supplier products</h3><p>Choose a supplier with an active catalog in Profile management.</p><a class="button button-secondary" href="{% url 'provider_settings' %}">Open profile management</a></div>{% endif %}
 {% endblock %}
-

@@ -87,13 +87,59 @@ def allowance_manage(request):
 
 @role_required("PROVIDER")
 def provider_reports(request):
+    from urgent_needs.models import UrgentNeed
+
     provider = request.user.provider_profile
-    reports = Report.objects.filter(provider=provider).select_related(
-        "needy__user", "item"
-    ).order_by("-reported_at", "-report_id")[:250]
-    blocked = Report.objects.filter(provider=provider, status__startswith="BLOCKED").select_related("needy__user", "item").order_by("-reported_at")[:250]
+    raw_month = request.GET.get("month", "").strip()
+    today = timezone.localdate()
+    try:
+        year_text, month_text = raw_month.split("-")
+        selected_month = date(int(year_text), int(month_text), 1)
+    except (ValueError, TypeError):
+        selected_month = date(today.year, today.month, 1)
+    month_end = date(selected_month.year + (selected_month.month == 12), selected_month.month % 12 + 1, 1)
+    reports = Report.objects.filter(
+        provider=provider, reported_at__date__gte=selected_month,
+        reported_at__date__lt=month_end,
+    ).select_related("needy__user", "item").order_by("reported_at", "report_id")
+    completed_reports = reports.filter(status__in=["DISTRIBUTED", "COMPLETED"])
+    blocked = reports.filter(status__startswith="BLOCKED")
+    donation_entries = list(DonationItem.objects.filter(
+        provider=provider, donation__created_at__date__gte=selected_month,
+        donation__created_at__date__lt=month_end,
+    ).select_related("donation__donor", "item").order_by("donation__created_at", "donation_item_id"))
+    for entry in donation_entries:
+        entry.line_total = (entry.price * entry.quantity).quantize(Decimal("0.01"))
+    paid_donation_entries = [entry for entry in donation_entries if entry.donation.status == "PAID"]
+    orders = list(PurchaseOrder.objects.filter(
+        provider=provider, created_at__date__gte=selected_month,
+        created_at__date__lt=month_end,
+    ).select_related("supplier").prefetch_related("items__product__item").order_by("created_at", "po_id"))
+    urgent_needs = UrgentNeed.objects.filter(
+        provider=provider, created_at__date__gte=selected_month,
+        created_at__date__lt=month_end,
+    ).select_related("item").order_by("created_at", "urgent_need_id")
+    distribution_total = completed_reports.aggregate(total=Sum("quantity"))["total"] or 0
+    paid_donation_total = sum((entry.line_total for entry in paid_donation_entries), Decimal("0.00"))
+    paid_donation_quantity = sum(entry.quantity for entry in paid_donation_entries)
+    order_total = sum((order.total_amount for order in orders), Decimal("0.00"))
     return render(request, "distribution/provider_reports.html", {
+        "provider": provider,
         "reports": reports, "blocked_reports": blocked,
+        "completed_reports": completed_reports,
+        "donation_entries": donation_entries,
+        "orders": orders,
+        "urgent_needs": urgent_needs,
+        "selected_month": selected_month,
+        "month_label": selected_month.strftime("%B %Y"),
+        "completed_count": completed_reports.count(),
+        "blocked_count": blocked.count(),
+        "distribution_total": distribution_total,
+        "paid_donation_total": paid_donation_total,
+        "paid_donation_quantity": paid_donation_quantity,
+        "paid_donation_count": len(paid_donation_entries),
+        "order_total": order_total,
+        "order_count": len(orders),
     })
 
 
@@ -171,7 +217,7 @@ def needy_self_report(request, token):
                     usage=AllowanceUsage.objects.select_for_update().filter(needy=needy,provider=provider,item=stock.item,week_start_date=week_start).first()
                     if usage is None:
                         usage=AllowanceUsage.objects.create(needy=needy,provider=provider,item=stock.item,week_start_date=week_start,allowed_quantity=limit,used_quantity=0,remaining_quantity=limit)
-                    else:
+                    elif not usage.admin_override:
                         usage.allowed_quantity=limit; usage.remaining_quantity=max(limit-usage.used_quantity,0)
                     if quantity>usage.remaining_quantity:
                         usage.save(update_fields=["allowed_quantity","remaining_quantity","updated_at"])
@@ -179,7 +225,7 @@ def needy_self_report(request, token):
                         error=f"This week's allowance is {usage.remaining_quantity} {stock.item.unit}; your request exceeds it."
                     else:
                         stock.quantity=F("quantity")-quantity; stock.save(update_fields=["quantity","updated_at"]); stock.refresh_from_db()
-                        usage.allowed_quantity=limit; usage.used_quantity+=quantity; usage.remaining_quantity=limit-usage.used_quantity; usage.save()
+                        usage.used_quantity+=quantity; usage.remaining_quantity=max(0,usage.allowed_quantity-usage.used_quantity); usage.save()
                         report=Report.objects.create(needy=needy,provider=provider,item=stock.item,quantity=quantity,report_method="SELF_REPORT",status="DISTRIBUTED",submission_key=submission_key)
                         from orders.models import InventoryLot
                         from .models import ReportLotAllocation

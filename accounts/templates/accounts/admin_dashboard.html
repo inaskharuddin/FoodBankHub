@@ -1,14 +1,43 @@
-<h1>Admin Dashboard</h1>
-<p>Welcome to the Admin Dashboard.</p>
-<a href="{% url 'admin_payout_list' %}">Review supplier payouts</a>
-<a href="{% url 'admin_donation_list' %}">View donor payments</a>
-<a href="{% url 'data_retention_settings' %}">Self-report retention settings</a>
-{% for message in messages %}<p>{{ message }}</p>{% endfor %}
-<h2>Supplier applications awaiting approval</h2>
-{% for supplier in pending_suppliers %}
-<section><h3>{{ supplier.business_name }}</h3><p>{{ supplier.ssm_registration_no }} · {{ supplier.contact_person }} · {{ supplier.phone }}</p>
-<p>Bank: {{ supplier.bank_name }} ({{ supplier.bank_account }}) · Login: {{ supplier.user.email }}</p>
-{% if supplier.business_license %}<p><a href="{% url 'supplier_license' supplier.supplier_id %}">View business license</a></p>{% endif %}
-<form method="post" action="{% url 'approve_supplier' supplier.supplier_id %}">{% csrf_token %}<button type="submit">Approve supplier</button></form></section>
-{% empty %}<p>No supplier applications are waiting.</p>{% endfor %}
-<a href="{% url 'logout' %}">Logout</a>
+{% extends 'accounts/admin_base.html' %}
+{% load static %}
+{% block title %}Platform analytics{% endblock %}
+{% block topbar_title %}Platform analytics{% endblock %}
+{% block extra_head %}<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script><script defer src="{% static 'js/admin_analytics.js' %}"></script>{% endblock %}
+{% block content %}
+<section class="admin-hero analytics-hero"><div><span class="eyebrow-green">FOODBANKHUB · MANAGEMENT</span><h1>Platform analytics</h1><p>Financial health, food demand, user growth, and supplier performance.</p></div><a class="button button-secondary" href="{% url 'admin_user_directory' %}">All users</a></section>
+
+<section class="analytics-kpi-grid" aria-label="Platform key metrics">
+<article class="analytics-kpi"><span>Total donations processed</span><strong>RM {{ donation_total|floatformat:2 }}</strong><small>{{ donation_count }} paid transactions</small></article>
+<article class="analytics-kpi"><span>Purchase order value</span><strong>RM {{ purchase_order_total|floatformat:2 }}</strong><small>Non-cancelled purchase orders</small></article>
+<article class="analytics-kpi"><span>Platform fee revenue</span><strong>RM {{ platform_fee_revenue|floatformat:2 }}</strong><small>Calculated at {{ platform_fee_rate_percent }}% of paid donations</small></article>
+<article class="analytics-kpi"><span>Active suppliers</span><strong>{{ active_supplier_count }}</strong><small>{{ pending_supplier_count }} suppliers · {{ pending_provider_count }} providers pending approval</small></article>
+</section>
+
+<section class="analytics-single-chart-grid">
+<article class="analytics-card analytics-card-wide"><div class="analytics-card-heading"><div><span class="eyebrow-green">FINANCIAL OVERVIEW</span><h2>Platform fee revenue</h2><p>Derived from paid donations at the configured 2.2% platform fee.</p></div><form method="get" class="analytics-period-form"><label for="revenue-period">Period</label><select id="revenue-period" name="revenue_period" onchange="this.form.submit()"><option value="7" {% if revenue_period == '7' %}selected{% endif %}>7 days</option><option value="30" {% if revenue_period == '30' %}selected{% endif %}>30 days</option><option value="365" {% if revenue_period == '365' %}selected{% endif %}>1 year</option></select></form></div><div class="analytics-chart-wrap"><canvas id="revenue-chart" aria-label="Platform fee revenue over time"></canvas></div></article>
+</section>
+
+<section class="analytics-kpi-grid analytics-forecast-kpis" aria-label="Forecast and service alerts"><article class="analytics-kpi analytics-kpi-forecast"><span>Current forecast accuracy</span><strong>{% if current_mape != None %}{{ current_mape|floatformat:2 }}%{% else %}—{% endif %}</strong><small>Mean MAPE across current scored forecasts</small></article><article class="analytics-kpi analytics-kpi-alert"><span>Urgent needs</span><strong>{{ urgent_need_count }}</strong><small>Open items with remaining shortage</small></article></section>
+
+<section class="analytics-state-grid"><article class="analytics-card"><div class="analytics-card-heading"><div><span class="eyebrow-green">PROVIDER LOCATIONS</span><h2>Provider registrations by state</h2><p>Provider count by Malaysian state, based on the saved address.</p></div></div><div class="analytics-chart-wrap chart-states"><canvas id="provider-state-chart" aria-label="Provider registrations by Malaysian state"></canvas></div><p class="analytics-note">Unrecognized or missing states are grouped as Unspecified.</p></article></section>
+
+<section class="analytics-grid analytics-activity-charts">
+<article class="analytics-card"><div class="analytics-card-heading"><div><span class="eyebrow-green">SUPPLIER PAYMENTS</span><h2>Top suppliers by transfer</h2><p>Completed supplier payouts, highest total first.</p></div></div><div class="analytics-chart-wrap chart-tall"><canvas id="supplier-transfer-chart" aria-label="Top suppliers by completed money transfer"></canvas></div><p class="analytics-note">Only payouts marked paid are included.</p></article>
+<article class="analytics-card"><div class="analytics-card-heading"><div><span class="eyebrow-green">COLLECTION ACTIVITY</span><h2>Food collections by weekday</h2><p>Completed self-report collections on each weekday over the last 12 months. Every collection report is counted.</p></div></div><div class="analytics-chart-wrap chart-tall"><canvas id="needy-weekday-chart" aria-label="Completed food collection reports by weekday"></canvas></div></article>
+</section>
+
+<section class="analytics-grid analytics-operations-grid">
+<article class="analytics-card analytics-card-wide"><div class="analytics-card-heading"><div><span class="eyebrow-green">COMMUNITY GROWTH</span><h2>User registrations</h2><p>Monthly account registrations over the last 12 months.</p></div></div><div class="analytics-chart-wrap"><canvas id="growth-chart" aria-label="Monthly user registration trends"></canvas></div></article>
+<article class="analytics-kpi analytics-kpi-needy"><span>Active Needy users this week</span><strong>{{ active_needy_week }}</strong><small>Unique users with completed food collection self-reports</small><span class="analytics-week-note">Week began {{ active_needy_week_start|date:"d M Y" }}</span></article>
+</section>
+
+<section class="admin-section analytics-supplier-section"><div class="analytics-section-heading"><div><span class="eyebrow-green">SUPPLIER PERFORMANCE</span><h2>Top suppliers</h2><p class="admin-section-intro">Ranked by provider ratings, followed by delivered order volume. Delivery-time data is not recorded by the current order model.</p></div></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Supplier</th><th>Provider rating</th><th>Reviews</th><th>Delivered orders</th><th>Total orders</th><th>Delivery time</th></tr></thead><tbody>{% for supplier in supplier_rows %}<tr><td><strong>{{ supplier.business_name }}</strong></td><td>{% if supplier.average_rating != None %}★ {{ supplier.average_rating|floatformat:1 }} / 5{% else %}No ratings{% endif %}</td><td>{{ supplier.review_count }}</td><td>{{ supplier.delivered_count }}</td><td>{{ supplier.order_count }}</td><td><span class="admin-muted">Not tracked</span></td></tr>{% empty %}<tr><td colspan="6">No approved suppliers yet.</td></tr>{% endfor %}</tbody></table></div></section>
+
+<section class="analytics-finance-note"><div><strong>Supplier annual subscription</strong><p>Suggested plan: RM {{ supplier_annual_fee_proposed|floatformat:2 }} per year. Subscription payments are not currently recorded, so this amount is not included in revenue.</p></div><a href="{% url 'admin_payout_list' %}">Review supplier payouts</a></section>
+
+<section class="admin-section"><h2>Provider compliance</h2><p class="admin-section-intro">Service-area setup and blocked needy reports across the platform.</p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Food bank</th><th>Account</th><th>Service areas</th><th>Blocked reports</th></tr></thead><tbody>{% for provider in providers %}<tr><td><strong>{{ provider.food_bank_name }}</strong></td><td>{{ provider.user.email }}</td><td>{% if provider.service_area_count %}{{ provider.service_area_count }} configured{% else %}<span class="admin-badge is-warning">Not configured</span>{% endif %}</td><td>{{ provider.blocked_count }}</td></tr>{% empty %}<tr><td colspan="4">No providers are registered.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="admin-section"><div class="analytics-section-heading"><h2>Recent transactions</h2><a href="{% url 'admin_donation_list' %}">View all transactions →</a></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Created</th><th>Donor</th><th>Method</th><th>Amount</th><th>Status</th><th>Reference</th></tr></thead><tbody>{% for payment in recent_transactions %}<tr><td>{{ payment.created_at|date:"d M Y H:i" }}</td><td>{{ payment.donation.donor.name }}</td><td>{{ payment.payment_method }}</td><td>RM {{ payment.amount|floatformat:2 }}</td><td>{{ payment.status }}</td><td>{{ payment.fpx_reference|default:payment.gateway_reference|default:"—" }}</td></tr>{% empty %}<tr><td colspan="6">No transactions recorded.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="admin-section analytics-config-section"><h2>Reporting and configuration</h2><div class="admin-action-grid"><div class="admin-action"><strong>FPX credentials</strong><small>{% if fpx_configured %}Environment configuration is present. Secret values are not displayed here.{% else %}One or more required environment settings are missing. Configure these outside the dashboard.{% endif %}</small></div><a class="admin-action" href="{% url 'admin_payout_list' %}"><strong>Supplier payout management</strong><small>View actual supplier transfers after delivery confirmation.</small></a></div></section>
+
+{{ revenue_chart|json_script:"revenue-chart-data" }}{{ supplier_transfer_chart|json_script:"supplier-transfer-chart-data" }}{{ needy_weekday_chart|json_script:"needy-weekday-chart-data" }}{{ provider_state_chart|json_script:"provider-state-chart-data" }}{{ growth_chart|json_script:"growth-chart-data" }}
+{% endblock %}

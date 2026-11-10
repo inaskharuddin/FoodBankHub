@@ -11,7 +11,7 @@
   <a class="tab-link {% if view == 'history' %}is-active{% endif %}" href="?view=history">History</a>
   <a class="tab-link {% if view == 'all' %}is-active{% endif %}" href="?view=all">All</a>
 </div>
-<form class="card filter-bar" method="get" action="{% url 'supplier_order_list' %}"><input type="hidden" name="view" value="{{ view }}"><div class="field" style="flex:1 1 230px"><label for="order-search">Search provider or PO number</label><input id="order-search" type="search" name="q" value="{{ search }}" placeholder="e.g. Community Food Bank or 104"></div><button class="btn btn-outline" type="submit">Search</button>{% if search %}<a class="btn btn-outline" href="?view={{ view }}">Clear</a>{% endif %}</form>
+<form class="card filter-bar" method="get" action="{% url 'supplier_order_list' %}"><input type="hidden" name="view" value="{{ view }}"><div class="field" style="flex:1 1 230px"><label for="order-search">Search provider or PO number</label><input id="order-search" type="search" name="q" value="{{ search }}" placeholder="e.g. Food bank name or 104"></div><button class="btn btn-outline" type="submit">Search</button>{% if search %}<a class="btn btn-outline" href="?view={{ view }}">Clear</a>{% endif %}</form>
 <div class="order-list">
 {% for order in orders %}
 <details class="card order-card" id="order-{{ order.po_id }}" {% if order.status == "PENDING" and view == "pending" %}open{% endif %}>

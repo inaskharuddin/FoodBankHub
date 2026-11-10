@@ -1,0 +1,12 @@
+{% extends 'accounts/provider_base.html' %}
+{% block title %}Edit Urgent Need{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow-green">NEED MANAGEMENT</span><h1>Edit {{ need.item.name }}</h1><p>Set the total quantity donors should fund. The target cannot go below quantities already funded.</p></div></section>
+{% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel urgent-need-edit-panel"><form method="post">{% csrf_token %}
+  <div class="urgent-need-edit-summary"><span>{{ need.item.category }} · {{ need.item.unit }}</span><strong>{{ need.funded_quantity }} {{ need.item.unit }} already funded</strong></div>
+  <label for="required-quantity">Total quantity needed ({{ need.item.unit }})</label><input id="required-quantity" type="number" name="required_quantity" min="1" value="{{ need.required_quantity }}" required>
+  <p class="muted">At the current supplier price of RM {{ product.price|floatformat:2 }} per {{ need.item.unit }}, the funding target will update automatically.</p>
+  <div class="form-actions"><button type="submit">Save need</button><a class="button button-secondary" href="{% url 'provider_urgent_needs' %}">Cancel</a></div>
+</form></section>
+{% endblock %}

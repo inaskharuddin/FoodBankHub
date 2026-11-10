@@ -56,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=20, blank=True, default="")
     role = models.CharField(
         max_length=20,
         choices=Role.choices,

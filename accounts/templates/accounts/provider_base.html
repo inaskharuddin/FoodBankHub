@@ -5,8 +5,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Provider Portal{% endblock %} · FoodBankHub</title>
-  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=forecast-three-column-cards">
+  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=form-validation-senior-3">
   <script defer src="{% static 'js/provider_portal.js' %}"></script>
+  <script defer src="{% static 'js/form_validation.js' %}?v=3"></script>
 </head>
 <body class="provider-body">
   <div class="provider-shell">
@@ -20,7 +21,6 @@
         <span class="nav-label">WORKSPACE</span>
         <a title="Dashboard" class="nav-link {% if request.resolver_match.url_name == 'provider_dashboard' %}is-active{% endif %}" href="{% url 'provider_dashboard' %}"><span class="nav-icon">⌂</span>Dashboard</a>
         <a title="Profile management" class="nav-link {% if request.resolver_match.url_name == 'provider_settings' %}is-active{% endif %}" href="{% url 'provider_settings' %}"><span class="nav-icon">◉</span>Profile management</a>
-        <a title="Supplier panel" class="nav-link {% if request.resolver_match.url_name == 'supplier_list' or request.resolver_match.url_name == 'selected_supplier_products' %}is-active{% endif %}" href="{% url 'supplier_list' %}"><span class="nav-icon">◎</span>Supplier panel</a>
         <a title="Food inventory" class="nav-link {% if request.resolver_match.url_name == 'inventory_list' or request.resolver_match.url_name == 'inventory_add' or request.resolver_match.url_name == 'inventory_edit' %}is-active{% endif %}" href="{% url 'inventory_list' %}"><span class="nav-icon">▦</span>Food inventory</a>
         <a title="Inventory monitoring" class="nav-link {% if request.resolver_match.url_name == 'low_stock_alerts' %}is-active{% endif %}" href="{% url 'low_stock_alerts' %}"><span class="nav-icon">◷</span>Inventory monitoring</a>
         <a title="Urgent needs" class="nav-link {% if request.resolver_match.url_name == 'provider_urgent_needs' %}is-active{% endif %}" href="{% url 'provider_urgent_needs' %}"><span class="nav-icon">♡</span>Urgent needs</a>

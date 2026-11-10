@@ -30,9 +30,9 @@ class AllowanceUsage(models.Model):
     allowed_quantity = models.PositiveIntegerField(default=0)
     used_quantity = models.PositiveIntegerField(default=0)
     remaining_quantity = models.PositiveIntegerField(default=0)
+    admin_override = models.BooleanField(default=False)
 
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.needy.user.name} - {self.item.name}"
-        

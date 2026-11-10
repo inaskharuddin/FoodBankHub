@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.core import signing
 
 from accounts.models import Needy, Provider, Supplier, User
-from distribution.models import ProviderSupplier, Report, ServiceArea
+from distribution.models import AllowanceUsage, ProviderAllowance, ProviderSupplier, Report, ServiceArea
 from forecasting.models import Forecast, HistoricalData
 from inventory.models import Inventory, Item, SupplierProduct
 
@@ -30,7 +30,6 @@ class ProviderSelfReportTests(TestCase):
             provider=self.provider, item=self.item, quantity=10, threshold_level=2,
         )
         ServiceArea.objects.create(provider=self.provider, postcode="43000", zone_name="Central")
-        from distribution.models import ProviderAllowance
         ProviderAllowance.objects.create(provider=self.provider, item=self.item, weekly_limit=10)
 
     def report_url(self, provider=None):
@@ -53,6 +52,22 @@ class ProviderSelfReportTests(TestCase):
         allocation = ReportLotAllocation.objects.get(report=report)
         self.assertTrue(allocation.estimated)
         self.assertIsNone(allocation.inventory_lot)
+
+    def test_admin_allowance_override_is_not_replaced_by_provider_default(self):
+        from datetime import timedelta
+        week_start = timezone.localdate() - timedelta(days=timezone.localdate().weekday())
+        usage = AllowanceUsage.objects.create(
+            needy=self.needy, provider=self.provider, item=self.item,
+            week_start_date=week_start, allowed_quantity=4, used_quantity=1,
+            remaining_quantity=3, admin_override=True,
+        )
+        self.client.force_login(self.needy_user)
+        response = self.client.post(self.report_url(), {"item_id": self.item.item_id, "quantity": "3"})
+        self.assertEqual(response.status_code, 302)
+        usage.refresh_from_db()
+        self.assertEqual(usage.allowed_quantity, 4)
+        self.assertEqual(usage.used_quantity, 4)
+        self.assertEqual(usage.remaining_quantity, 0)
 
     def test_distribution_consumes_exact_donor_order_allocation(self):
         from decimal import Decimal

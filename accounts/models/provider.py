@@ -15,6 +15,14 @@ class Provider(models.Model):
     phone = models.CharField(max_length=20)
     address = models.TextField()
     operating_hours = models.CharField(max_length=255)
+    is_approved = models.BooleanField(default=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    documents_reviewed_at = models.DateTimeField(null=True, blank=True)
+    documents_reviewed_by = models.ForeignKey(
+        "User", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="provider_documents_reviewed",
+    )
 
     latitude = models.DecimalField(
         max_digits=10,

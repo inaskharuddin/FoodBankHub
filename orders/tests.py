@@ -100,7 +100,7 @@ class SupplierDeliveryWorkflowTests(TestCase):
         self.assertEqual(self.client.post(foreign_status_url, {"action": "accept"}).status_code, 404)
 
         self.client.force_login(self.supplier_user)
-        self.assertContains(self.client.get(reverse("supplier_order_list")), "PO " + str(self.order.po_id))
+        self.assertContains(self.client.get(reverse("supplier_order_list")), "#" + str(self.order.po_id))
 
         self.client.force_login(self.other_provider_user)
         self.assertEqual(
@@ -140,9 +140,43 @@ class SupplierDeliveryWorkflowTests(TestCase):
         self.assertEqual(payout.transfer_reference, "TX-123")
 
         self.client.force_login(self.supplier_user)
-        self.assertContains(self.client.get(reverse("supplier_payout_list")), "TX-123")
+        self.assertContains(self.client.get(reverse("supplier_payout_list") + "?tab=history"), "TX-123")
         self.client.force_login(self.other_supplier_user)
         self.assertNotContains(self.client.get(reverse("supplier_payout_list")), "TX-123")
+
+    def test_admin_payout_batch_requires_delivery_confirmation_and_is_unique(self):
+        admin = User.objects.create_user(email="payout-admin@example.test", name="Admin", password="test-pass", role="ADMIN")
+        self.client.force_login(admin)
+        batch_url = reverse("admin_payout_list")
+        self.client.post(batch_url, {"action": "prepare"})
+        self.assertFalse(Payout.objects.filter(po=self.order).exists())
+        self.order.status = "DELIVERED"
+        self.order.delivery_confirmed = True
+        self.order.save(update_fields=["status", "delivery_confirmed"])
+        self.client.post(batch_url, {"action": "prepare"})
+        self.client.post(batch_url, {"action": "prepare"})
+        payout = Payout.objects.get(po=self.order)
+        self.assertEqual(Payout.objects.filter(po=self.order).count(), 1)
+        self.assertEqual(payout.status, "PENDING")
+        self.assertEqual(payout.amount, Decimal("10.00"))
+
+    def test_admin_can_mark_payout_failed_and_retry_without_paying_provider(self):
+        admin = User.objects.create_user(email="payout-admin-two@example.test", name="Admin", password="test-pass", role="ADMIN")
+        self.order.status = "DELIVERED"
+        self.order.delivery_confirmed = True
+        self.order.save(update_fields=["status", "delivery_confirmed"])
+        payout = Payout.objects.create(po=self.order, supplier=self.supplier, amount=self.order.total_amount, status="PENDING")
+        self.client.force_login(admin)
+        url = reverse("record_purchase_order_payment", args=[self.order.po_id])
+        self.client.post(url, {"action": "failed", "transfer_reference": "BANK-FAIL-1"})
+        payout.refresh_from_db()
+        self.assertEqual(payout.status, "FAILED")
+        self.assertEqual(payout.transfer_reference, "BANK-FAIL-1")
+        self.client.post(url, {"action": "retry"})
+        payout.refresh_from_db()
+        self.assertEqual(payout.status, "PENDING")
+        self.assertEqual(Payout.objects.count(), 1)
+        self.assertEqual(payout.supplier, self.supplier)
 
     def test_provider_can_rate_supplier_only_after_confirmed_delivery(self):
         self.order.status = "DELIVERED"

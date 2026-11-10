@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html><head><title>Donor payments</title></head><body>
-<h1>Donor payments</h1><p><a href="{% url 'admin_dashboard' %}">Admin dashboard</a></p>
-{% for donation in donations %}<section>
-<h2>Donation {{ donation.donation_id }} — {{ donation.status }}</h2>
-<p>Donor: {{ donation.donor.name }} ({{ donation.donor.email }}) | Amount: RM {{ donation.total_amount }}</p>
-{% for payment in donation.transactions.all %}<p>{{ payment.payment_method }}: {{ payment.status }}{% if payment.fpx_reference %} — reference {{ payment.fpx_reference }}{% endif %}{% if payment.verification_note %} — Admin verification: {{ payment.verification_note }}{% endif %}</p>{% if payment.status == "FAILED" %}<form method="post" action="{% url 'admin_verify_failed_payment' payment.transaction_id %}">{% csrf_token %}<label>Verified bank reference <input name="bank_reference" maxlength="100" required></label><label>Verification note <input name="verification_note" maxlength="500" required></label><button type="submit">Record verified payment</button></form>{% endif %}{% endfor %}
-</section>{% empty %}<p>No donation records.</p>{% endfor %}
-</body></html>
+{% extends 'accounts/admin_base.html' %}
+{% block title %}Donor payments{% endblock %}
+{% block topbar_title %}Donor payments{% endblock %}
+{% block content %}
+<section class="admin-hero"><div><span class="eyebrow-green">PAYMENTS</span><h1>Donor payments</h1><p>Review donation and FPX status. Failed payments can be recorded after a bank reference is verified.</p></div><a class="button button-secondary" href="{% url 'admin_dashboard' %}">Back to overview</a></section>
+<div class="admin-payment-list">{% for donation in donations %}<section class="admin-section admin-payment-card"><header class="admin-payment-header"><div><span class="admin-payment-kicker">DONATION {{ donation.donation_id }}</span><h2>{{ donation.status|title }}</h2></div><strong>RM {{ donation.total_amount|floatformat:2 }}</strong></header><div class="admin-payment-meta"><span><small>Donor</small>{{ donation.donor.name }}</span><span><small>Email</small>{{ donation.donor.email }}</span><span><small>Date</small>{{ donation.created_at|date:"d M Y, H:i" }}</span></div>
+{% for payment in donation.transactions.all %}<div class="admin-payment-row"><div><strong>{{ payment.payment_method }}</strong><span class="admin-badge {% if payment.status == 'FAILED' %}is-warning{% endif %}">{{ payment.status|title }}</span>{% if payment.fpx_reference %}<small>Reference: {{ payment.fpx_reference }}</small>{% endif %}{% if payment.verification_note %}<small>Admin verification: {{ payment.verification_note }}</small>{% endif %}</div>{% if payment.status == "FAILED" %}<form method="post" action="{% url 'admin_verify_failed_payment' payment.transaction_id %}" class="admin-payment-verify">{% csrf_token %}<label>Verified bank reference<input name="bank_reference" maxlength="100" required></label><label>Verification note<input name="verification_note" maxlength="500" required></label><button type="submit">Record verified payment</button></form>{% endif %}</div>{% empty %}<p class="admin-empty-note">No transaction has been recorded for this donation.</p>{% endfor %}
+</section>{% empty %}<section class="admin-section admin-empty-note">No donation records.</section>{% endfor %}</div>
+{% endblock %}

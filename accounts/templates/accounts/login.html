@@ -1,36 +1,57 @@
 {% load static %}
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}">
-    <title>FoodBankHub Login</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#174637">
+  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=20261110-signin-8">
+  <script defer src="{% static 'js/form_validation.js' %}?v=3"></script>
+  <title>Sign in · FoodBankHub</title>
 </head>
-<body class="provider-body auth-page">
-
-<h1>FoodBankHub Login</h1>
-
-<form method="POST">
-    {% csrf_token %}
-
-    <input type="email" name="email" placeholder="Email" required>
-
-    <input type="password" name="password" placeholder="Password" required>
-
-    <button type="submit">Login</button>
-
-    {% if error %}
-        <p>{{ error }}</p>
-    {% endif %}
-</form>
-<p>Need food assistance? <a href="{% url 'needy_register' %}">Create a Needy account</a></p>
-<p>Register a food bank? <a href="{% url 'provider_register' %}">Create Provider account</a></p>
-<p>New donor? <a href="{% url 'donor_register' %}">Create a donor account</a></p>
-<p>Supplier? <a href="{% url 'supplier_register' %}">Register your business</a></p>
-
-
+<body class="provider-body auth-page login-page">
+  <main class="login-layout">
+    <section class="login-panel" aria-labelledby="login-title">
+      <a class="login-brand" href="{% url 'login' %}" aria-label="FoodBankHub home">
+        <span class="login-brand-mark">FH</span>
+        <span><strong>FoodBankHub</strong><small>Food support, connected</small></span>
+      </a>
+      <div class="login-intro">
+        <span class="eyebrow-green">WELCOME BACK</span>
+        <h1 id="login-title">Login</h1>
+        <p>Sign in to your FoodBankHub account.</p>
+      </div>
+      {% if pending_approval %}<div class="login-pending-notice" role="status"><strong>Account awaiting approval</strong><p>{{ pending_approval }}</p></div>{% endif %}
+      {% if messages %}<div class="login-pending-notice" role="status"><strong>Registration received</strong>{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+      {% if error %}<p class="login-error" role="alert">⚠ {{ error }}</p>{% endif %}
+      <form method="post" class="login-form">
+        {% csrf_token %}
+        <label for="login-email">Email address or phone number</label>
+        <input id="login-email" type="text" name="email" value="{{ email|default:'' }}" placeholder="you@example.com or 0123456789" autocomplete="username" required>
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+        <button type="submit">Log in <span aria-hidden="true">→</span></button>
+      </form>
+      <div class="login-register">
+        <span>New to FoodBankHub?</span>
+        <a href="{% url 'needy_register' %}">Create an account</a>
+      </div>
+      <nav class="login-role-links" aria-label="Create an account for another role">
+        <span>Register as:</span>
+        <a href="{% url 'provider_register' %}">Food bank</a>
+        <a href="{% url 'donor_register' %}">Donor</a>
+        <a href="{% url 'supplier_register' %}">Supplier</a>
+      </nav>
+    </section>
+    <aside class="login-story" aria-label="FoodBankHub community food support">
+      <img class="login-story-photo" src="{% static 'images/login-foodbank.png' %}" alt="Food bank volunteer organizing rice and pantry donations">
+      <div class="login-story-top"><span class="login-story-brand-mark">FH</span><span>FOODBANKHUB</span></div>
+      <div class="login-story-content">
+        <h2>Good food.<br>Stronger communities.</h2>
+        <p>Bringing food banks, donors, suppliers, and communities together.</p>
+      </div>
+      <div class="login-story-bottom"><span>COMMUNITY FOOD SUPPORT</span><span>GIVE · SHARE · GROW</span></div>
+    </aside>
+  </main>
 </body>
 </html>
-
-
-

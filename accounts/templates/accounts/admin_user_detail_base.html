@@ -1,0 +1,15 @@
+{% extends 'accounts/admin_base.html' %}
+{% load static %}
+{% block extra_head %}<script defer src="{% static 'js/admin_user_detail.js' %}"></script>{% endblock %}
+{% block content %}
+<section class="admin-hero"><div><span class="eyebrow-green">USER PROFILE · {{ account.get_role_display|upper }}</span><h1>{% block detail_heading %}{{ account.name }}{% endblock %}</h1><p>Review and update this account’s registered information.</p></div><a class="button button-secondary" href="{% url 'admin_user_directory' %}">Back to all users</a></section>
+<section class="admin-section admin-user-detail-card"><div class="admin-user-detail-meta"><span>Registered <strong>{{ account.created_at|date:"d M Y, H:i" }}</strong></span><span>Account status <strong>{{ account.get_status_display }}{% if not account.is_active %} · Disabled{% endif %}</strong></span><span>Password <strong>••••••••</strong><small>Password hashes cannot be viewed.</small></span></div>
+{% block missing_profile %}{% endblock %}
+<form method="post" enctype="multipart/form-data" action="{% url 'admin_user_update' account.pk %}" class="admin-detail-form" data-admin-save-confirm>{% csrf_token %}
+<div class="admin-detail-grid"><label>Name<input type="text" name="name" maxlength="100" value="{{ account.name }}" required></label><label>Email address<input type="email" name="email" maxlength="254" value="{{ account.email }}" required><small>FoodBankHub requires an email address for sign-in.</small></label><label>Role<input type="text" value="{{ account.get_role_display }}" readonly></label><label>Status<select name="status"><option value="ACTIVE" {% if account.status == "ACTIVE" %}selected{% endif %}>Active</option><option value="INACTIVE" {% if account.status == "INACTIVE" %}selected{% endif %}>Inactive</option></select></label></div>
+{% block role_fields %}{% endblock %}
+<div class="admin-detail-actions"><button type="submit" data-confirm-save>Save Changes</button><a class="button button-secondary" href="{% url 'admin_user_directory' %}">Cancel</a></div>
+</form><form method="post" action="{% url 'admin_user_delete' account.pk %}" class="admin-detail-delete" data-admin-action-confirm="Are you sure you want to permanently delete this user? All associated data will be lost.">{% csrf_token %}<button type="submit" class="admin-user-button is-delete" {% if account.pk == request.user.pk %}disabled title="You cannot delete your current account"{% endif %}>Delete User</button></form></section>
+{% block related_records %}{% endblock %}
+{% block approval_actions %}{% endblock %}
+{% endblock %}

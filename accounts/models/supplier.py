@@ -12,7 +12,7 @@ class Supplier(models.Model):
     )
 
     business_name = models.CharField(max_length=200)
-    ssm_registration_no = models.CharField(max_length=50)
+    ssm_registration_no = models.CharField(max_length=50, unique=True)
     business_license = models.FileField(
         upload_to="supplier_licenses/",
         null=True,
@@ -24,6 +24,12 @@ class Supplier(models.Model):
     bank_name = models.CharField(max_length=100)
     is_approved = models.BooleanField(default=True)
     approved_at = models.DateTimeField(null=True, blank=True)
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    documents_reviewed_at = models.DateTimeField(null=True, blank=True)
+    documents_reviewed_by = models.ForeignKey(
+        "User", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="supplier_documents_reviewed",
+    )
     rating = models.DecimalField(
         max_digits=3,
         decimal_places=2,

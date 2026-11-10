@@ -1,15 +1,18 @@
-{% load static %}
-<!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="{% static 'css/provider_portal.css' %}"><title>Create donor account</title></head><body class="provider-body auth-page">
-<h1>Join FoodBankHub as a donor</h1>
-{% if error %}<p role="alert">{{ error }}</p>{% endif %}
-<form method="post">{% csrf_token %}
-<label>Name <input name="name" maxlength="100" required></label><br>
-<label>Email <input type="email" name="email" required></label><br>
-<label>Password <input type="password" name="password" required></label><br>
-<button type="submit">Create donor account</button>
-</form>
-<p><a href="{% url 'login' %}">Already registered? Sign in</a></p>
-</body></html>
-
-
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#174637"><link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=20261110-register-8"><script defer src="{% static 'js/form_validation.js' %}?v=3"></script><title>Donor registration · FoodBankHub</title></head>
+<body class="provider-body account-register-page"><main class="account-register-layout">
+  <aside class="account-register-aside"><img src="{% static 'images/login-foodbank.png' %}" alt="Food bank volunteer organizing pantry food"><div class="register-photo-brand"><span>FH</span> FOODBANKHUB</div><div class="register-photo-copy"><span>GIVE WITH PURPOSE</span><h2>Your support<br>feeds community.</h2><p>Help local food banks meet urgent needs with transparent contributions.</p></div></aside>
+  <section class="account-register-panel"><a class="register-back-link" href="{% url 'login' %}">← Back to sign in</a>
+    <div class="register-panel-heading"><span class="register-kicker">DONOR REGISTRATION</span><h1>Join as a donor</h1><p>Create your account to support food banks and follow community needs.</p></div>
+    {% if error %}<div class="register-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" class="account-register-form">
+      {% csrf_token %}
+      <label class="field-wide">Full name<input name="name" maxlength="100" autocomplete="name" required></label>
+      <label class="field-wide">Email address<input type="email" name="email" autocomplete="email" required></label>
+      <label class="field-wide">Phone number <span class="optional-label">Optional</span><input type="tel" name="phone" autocomplete="tel" placeholder="Add a contact number (optional)"></label>
+      <label class="field-wide">Password<input type="password" name="password" autocomplete="new-password" required></label>
+      <button class="field-wide" type="submit">Create donor account <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="register-login-prompt">Already registered? <a href="{% url 'login' %}">Sign in</a></p>
+  </section>
+</main></body></html>

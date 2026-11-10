@@ -1,0 +1,5 @@
+{% extends 'accounts/admin_user_detail_base.html' %}
+{% block title %}Administrator details · {{ account.name }}{% endblock %}
+{% block topbar_title %}Administrator details{% endblock %}
+{% block detail_heading %}{{ account.name }}{% endblock %}
+{% block role_fields %}<p class="admin-model-note">Administrator accounts do not have a separate profile record.</p>{% endblock %}

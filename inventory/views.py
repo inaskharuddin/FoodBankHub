@@ -4,6 +4,7 @@ import io
 from decimal import Decimal, InvalidOperation
 from math import ceil
 
+from django.contrib import messages
 from django.db import transaction
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -229,11 +230,23 @@ def supplier_product_delete(request, product_id):
 
 @role_required("PROVIDER")
 def supplier_list(request):
+    from urgent_needs.models import UrgentNeed
+
+    provider = request.user.provider_profile
     suppliers = Supplier.objects.filter(is_approved=True, user__is_active=True).order_by("business_name")
     for supplier in suppliers:
         supplier.active_product_count = supplier.products.filter(status="ACTIVE").count()
-    current = ProviderSupplier.objects.filter(provider=request.user.provider_profile, status="ACTIVE").select_related("supplier").first()
-    return render(request, "inventory/supplier_list.html", {"suppliers": suppliers, "current_supplier": current})
+    current = ProviderSupplier.objects.filter(provider=provider, status="ACTIVE").select_related("supplier").first()
+    active_urgent_need_count = UrgentNeed.objects.filter(
+        provider=provider, status__in=["OPEN", "FUNDED"],
+    ).count()
+    for supplier in suppliers:
+        supplier.is_current = bool(current and current.supplier_id == supplier.supplier_id)
+        supplier.switch_blocked = bool(active_urgent_need_count and not supplier.is_current)
+    return render(request, "inventory/supplier_list.html", {
+        "suppliers": suppliers, "current_supplier": current,
+        "active_urgent_need_count": active_urgent_need_count,
+    })
 
 
 @role_required("PROVIDER")
@@ -241,20 +254,14 @@ def supplier_select(request, supplier_id):
     if request.method != "POST":
         return redirect("supplier_list")
     provider = request.user.provider_profile
-    supplier = get_object_or_404(
-        Supplier, supplier_id=supplier_id, is_approved=True, user__is_active=True,
-    )
-    with transaction.atomic():
-        ProviderSupplier.objects.filter(provider=provider, status="ACTIVE").update(status="INACTIVE")
-        relation, _ = ProviderSupplier.objects.get_or_create(provider=provider, supplier=supplier, defaults={"status": "ACTIVE"})
-        if relation.status != "ACTIVE":
-            relation.status = "ACTIVE"
-            relation.save(update_fields=["status"])
-        Inventory.objects.filter(provider=provider).update(price_per_unit=Decimal("0.00"))
-        for product in SupplierProduct.objects.filter(supplier=supplier, status="ACTIVE"):
-            Inventory.objects.filter(provider=provider, item=product.item).update(price_per_unit=product.price)
-        from urgent_needs.services import sync_provider_urgent_needs
-        sync_provider_urgent_needs(provider)
+    from .services import select_provider_supplier
+
+    supplier, error = select_provider_supplier(provider, supplier_id)
+    if error:
+        messages.error(request, error)
+        return redirect("supplier_list")
+    if supplier:
+        messages.success(request, f"{supplier.business_name} is now your selected supplier.")
     return redirect("selected_supplier_products")
 
 

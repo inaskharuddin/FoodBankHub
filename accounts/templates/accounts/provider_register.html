@@ -1,18 +1,24 @@
-{% load static %}
-<!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="{% static 'css/provider_portal.css' %}"><title>Register Food Bank</title></head><body class="provider-body auth-page">
-<h1>Register a Food Bank</h1>
-{% if error %}<p role="alert">{{ error }}</p>{% endif %}
-<form method="post">{% csrf_token %}
-<label>Account name <input name="name" required></label><br>
-<label>Email <input type="email" name="email" required></label><br>
-<label>Password <input type="password" name="password" required></label><br>
-<label>Food bank name <input name="food_bank_name" required></label><br>
-<label>Phone <input name="phone" required></label><br>
-<label>Address <textarea name="address" required></textarea></label><br>
-<label>Self-service hours <input name="operating_hours" placeholder="Mon-Fri 9:00-17:00 or 24/7" required></label><br>
-<button type="submit">Create Provider account</button>
-</form><p><a href="{% url 'login' %}">Sign in</a></p>
-</body></html>
-
-
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#174637"><link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=20261110-register-8"><script defer src="{% static 'js/form_validation.js' %}?v=3"></script><title>Food bank registration · FoodBankHub</title></head>
+<body class="provider-body account-register-page"><main class="account-register-layout">
+  <aside class="account-register-aside"><img src="{% static 'images/login-foodbank.png' %}" alt="Food bank volunteer organizing pantry food"><div class="register-photo-brand"><span>FH</span> FOODBANKHUB</div><div class="register-photo-copy"><span>FOOD BANK PARTNERS</span><h2>Good food.<br>Stronger communities.</h2><p>Bring your food bank into a community network built around access, care, and reliable support.</p></div></aside>
+  <section class="account-register-panel"><a class="register-back-link" href="{% url 'login' %}">← Back to sign in</a>
+    <div class="register-panel-heading"><span class="register-kicker">PROVIDER REGISTRATION</span><h1>Register your food bank</h1><p>Submit your organization details for review. You can sign in after approval.</p></div>
+    {% if submitted %}<div class="register-success" role="status"><span class="register-success-mark">✓</span><div><h2>Application submitted</h2><p>An administrator will review your details and documents before activating your account.</p><a href="{% url 'login' %}">Return to sign in</a></div></div>
+    {% else %}{% if error %}<div class="register-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" enctype="multipart/form-data" class="account-register-form">
+      {% csrf_token %}
+      <label>Food bank name<input name="food_bank_name" maxlength="200" autocomplete="organization" required></label>
+      <label>Email address<input type="email" name="email" autocomplete="email" required></label>
+      <label>Phone number<input type="tel" name="phone" maxlength="20" autocomplete="tel" required></label>
+      <label>Operating hours<input name="operating_hours" maxlength="255" placeholder="Mon–Fri 9:00–17:00 or 24/7" required></label>
+      <label class="field-wide">Physical address<textarea name="address" autocomplete="street-address" required></textarea></label>
+      <label class="field-wide">Service area postcodes or zones<textarea name="service_areas" placeholder="One per line: postcode | zone name&#10;43000 | Shah Alam&#10;50000 | Kuala Lumpur" required></textarea><small>Enter at least one area, with a postcode and zone on each line.</small></label>
+      <label>Food bank photo<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required><small>Signage or storefront · JPG, PNG, WEBP · up to 5 MB</small></label>
+      <label>Supporting organization document<input type="file" name="service_document" accept="application/pdf,image/jpeg,image/png" required><small>PDF, JPG, PNG · up to 10 MB</small></label>
+      <label class="field-wide">Password<input type="password" name="password" autocomplete="new-password" minlength="12" required><small>At least 12 characters with uppercase and lowercase letters, a number, and a symbol.</small></label>
+      <button class="field-wide" type="submit">Submit provider registration <span aria-hidden="true">→</span></button>
+    </form>{% endif %}
+    <p class="register-login-prompt">Already registered? <a href="{% url 'login' %}">Sign in</a></p>
+  </section>
+</main></body></html>

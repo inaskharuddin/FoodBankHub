@@ -15,18 +15,17 @@
 <form method="post">
   {% csrf_token %}<input type="hidden" name="action" value="save_estimates">
   <table>
-    <thead><tr><th>Product</th><th>Product ID</th>{% for month,label in months %}<th>{{ label }} ({{ month|date:"M Y" }})</th>{% endfor %}</tr></thead>
+    <thead><tr><th>Product</th><th>Product ID</th>{% for month in months %}<th>{{ month|date:"F Y" }}</th>{% endfor %}</tr></thead>
     <tbody>{% for product in products %}<tr>
       <td>{{ product.item.name }} ({{ product.item.unit }})</td><td>{{ product.product_id }}</td>
-      {% for month,label in months %}<td><input type="number" min="0" step="1" name="month_{{ forloop.counter }}_{{ product.product_id }}" required></td>{% endfor %}
+      {% for month in months %}<td><input type="number" min="0" step="1" name="month_{{ forloop.counter }}_{{ product.product_id }}" required></td>{% endfor %}
     </tr>{% endfor %}</tbody>
   </table>
   <button type="submit">Save estimated baseline</button>
 </form>
-<h2>Saved historical records</h2>
-{% if history %}<table><thead><tr><th>Date</th><th>Product</th><th>Quantity</th><th>Source</th><th>Supplier</th></tr></thead><tbody>
-{% for record in history %}<tr><td>{{ record.date }}</td><td>{{ record.item.name }}</td><td>{{ record.quantity }}</td><td>{{ record.get_source_display }}</td><td>{{ record.supplier.business_name|default:"Legacy / unknown" }}</td></tr>{% endfor %}
-</tbody></table>{% else %}<p>No historical records yet.</p>{% endif %}
+<section class="history-browser"><h2>Saved historical records</h2><p>Choose a food item and month to view its demand history.</p>
+{% if has_history %}<form method="get" class="history-filter-form"><label for="history-item">Food item</label><select id="history-item" name="item" required><option value="">Select an item</option>{% for option in item_options %}<option value="{{ option.item_id }}" {% if selected_item == option.item_id|stringformat:"s" %}selected{% endif %}>{{ option.item__name }} ({{ option.item__unit }})</option>{% endfor %}</select><label for="history-month">Month</label><select id="history-month" name="month" required><option value="">Select a month</option>{% for option in month_options %}<option value="{{ option.value }}" {% if selected_month == option.value %}selected{% endif %}>{{ option.label }}</option>{% endfor %}</select><button type="submit">View records</button></form>
+{% if selected_item and selected_month %}<h3>{{ selected_item_name }} · {{ selected_month_label }}</h3>{% if history %}<div class="table-wrap"><table><thead><tr><th>Date</th><th>Quantity</th><th>Source</th><th>Supplier</th></tr></thead><tbody>{% for record in history %}<tr><td>{{ record.date|date:"D, M j, Y" }}</td><td>{{ record.quantity }} {{ record.item.unit }}</td><td>{{ record.get_source_display }}</td><td>{{ record.supplier.business_name|default:"Legacy / unknown" }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p>No records exist for this item and month.</p>{% endif %}{% else %}<p class="muted">Select both filters to view saved records.</p>{% endif %}{% else %}<p>No historical records yet. Upload a CSV or enter a baseline above to start.</p>{% endif %}</section>
 <p><a href="{% url 'provider_dashboard' %}">Return to dashboard</a></p>
 {% endblock %}
 

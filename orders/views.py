@@ -1,7 +1,8 @@
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
-from django.db.models import Avg
+from django.db.models import Avg, Count, Sum
+from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.views import role_required
@@ -36,9 +37,33 @@ def purchase_order_create(request):
             "products": [],
         })
 
-    products = SupplierProduct.objects.filter(
+    products = list(SupplierProduct.objects.filter(
         supplier=relationship.supplier, status="ACTIVE"
-    ).select_related("item").order_by("item__name")
+    ).select_related("item").order_by("item__name"))
+
+    def add_funding_details(product_rows):
+        needs = {}
+        for need in UrgentNeed.objects.filter(provider=provider, status="FUNDED").order_by("-created_at"):
+            needs.setdefault(need.item_id, need)
+        for product in product_rows:
+            need = needs.get(product.item_id)
+            product.funded_need = need
+            product.orderable = bool(
+                need and need.required_quantity > 0
+                and need.funded_quantity >= need.required_quantity
+                and need.remaining_quantity == 0
+                and product.stock >= need.required_quantity
+            )
+            product.suggested_quantity = need.required_quantity if product.orderable else 0
+            if not need or need.funded_quantity < need.required_quantity:
+                product.order_block_reason = "Donor funding must reach 100% before ordering."
+            elif product.stock < need.required_quantity:
+                product.order_block_reason = f"Supplier stock is below the fully funded quantity ({product.stock} available)."
+            else:
+                product.order_block_reason = ""
+        return product_rows
+
+    add_funding_details(products)
 
     if request.method == "POST":
         quantities = {}
@@ -64,53 +89,82 @@ def purchase_order_create(request):
         if not quantities and not errors:
             errors.append("Enter a quantity greater than zero for at least one product.")
 
-        selected_products = list(products.filter(product_id__in=quantities))
-        for product in selected_products:
-            if quantities[str(product.product_id)] > product.stock:
-                errors.append(f"{product.item.name}: requested quantity exceeds stock ({product.stock}).")
-
         if errors:
+            for product in products:
+                product.suggested_quantity = quantities.get(str(product.product_id), 0)
             return render(request, "orders/purchase_order_create.html", {
                 "error": " ".join(errors), "products": products,
                 "quantities": quantities,
+                "eligible_count": sum(1 for product in products if product.orderable),
+                "relationship": relationship,
             })
-
-        try:
-            total = sum(
-                (product.price * quantities[str(product.product_id)] for product in selected_products),
-                Decimal("0.00"),
-            ).quantize(Decimal("0.01"))
-        except (InvalidOperation, TypeError):
-            return render(request, "orders/purchase_order_create.html", {
-                "error": "Could not calculate the order total.", "products": products,
-                "quantities": quantities,
-            })
-
+        selected_products = []
+        selected_needs = []
         with transaction.atomic():
-            order = PurchaseOrder.objects.create(
-                provider=provider, supplier=relationship.supplier, total_amount=total
-            )
-            POItem.objects.bulk_create([
-                POItem(
-                    po=order,
-                    product=product,
-                    quantity=quantities[str(product.product_id)],
-                    price=product.price,
-                    subtotal=(product.price * quantities[str(product.product_id)]).quantize(Decimal("0.01")),
+            selected_products = list(SupplierProduct.objects.select_for_update().filter(
+                supplier=relationship.supplier, status="ACTIVE", product_id__in=quantities,
+            ).select_related("item"))
+            product_by_id = {str(product.product_id): product for product in selected_products}
+            if len(product_by_id) != len(quantities):
+                errors.append("One or more products are no longer available from your selected supplier.")
+            for product_id, quantity in quantities.items():
+                product = product_by_id.get(product_id)
+                if not product:
+                    continue
+                need = UrgentNeed.objects.select_for_update().filter(
+                    provider=provider, item=product.item, status="FUNDED",
+                ).order_by("-created_at").first()
+                if not need or need.required_quantity <= 0 or need.funded_quantity < need.required_quantity or need.remaining_quantity != 0:
+                    errors.append(f"{product.item.name}: donors must fund 100% of this need before it can be ordered.")
+                    continue
+                if quantity != need.required_quantity:
+                    errors.append(f"{product.item.name}: order the fully funded quantity of {need.required_quantity} {product.item.unit}.")
+                if quantity > product.stock:
+                    errors.append(f"{product.item.name}: supplier stock is only {product.stock} {product.item.unit}.")
+                selected_needs.append(need)
+            if not errors:
+                total = sum(
+                    (product.price * quantities[str(product.product_id)] for product in selected_products),
+                    Decimal("0.00"),
+                ).quantize(Decimal("0.01"))
+                order = PurchaseOrder.objects.create(
+                    provider=provider, supplier=relationship.supplier, total_amount=total
                 )
-                for product in selected_products
-            ])
-            from donations.services import allocate_paid_donations_to_order
-            allocate_paid_donations_to_order(order)
-            for product in selected_products:
-                UrgentNeed.objects.filter(provider=provider, item=product.item, status__in=["OPEN", "FUNDED"]).update(status="ORDERED")
+                POItem.objects.bulk_create([
+                    POItem(
+                        po=order,
+                        product=product,
+                        quantity=quantities[str(product.product_id)],
+                        price=product.price,
+                        subtotal=(product.price * quantities[str(product.product_id)]).quantize(Decimal("0.01")),
+                    )
+                    for product in selected_products
+                ])
+                from donations.services import allocate_paid_donations_to_order
+                allocate_paid_donations_to_order(order)
+                UrgentNeed.objects.filter(pk__in=[need.pk for need in selected_needs]).update(status="ORDERED")
+        if errors:
+            add_funding_details(products)
+            for product in products:
+                product.suggested_quantity = quantities.get(str(product.product_id), 0)
+            return render(request, "orders/purchase_order_create.html", {
+                "error": " ".join(errors), "products": products,
+                "quantities": quantities,
+                "eligible_count": sum(1 for product in products if product.orderable),
+                "relationship": relationship,
+            })
         return redirect("purchase_order_detail", po_id=order.po_id)
 
     suggested_id = request.GET.get("product", "")
     suggested_qty = request.GET.get("quantity", "")
     for product in products:
-        product.suggested_quantity = suggested_qty if str(product.product_id) == suggested_id and suggested_qty.isascii() and suggested_qty.isdecimal() and int(suggested_qty) <= product.stock else 0
-    return render(request, "orders/purchase_order_create.html", {"products": products})
+        if product.orderable and str(product.product_id) == suggested_id and suggested_qty.isascii() and suggested_qty.isdecimal() and int(suggested_qty) == product.suggested_quantity:
+            product.suggested_quantity = suggested_qty
+    return render(request, "orders/purchase_order_create.html", {
+        "products": products,
+        "eligible_count": sum(1 for product in products if product.orderable),
+        "relationship": relationship,
+    })
 
 
 @role_required("PROVIDER")
@@ -229,10 +283,26 @@ def confirm_purchase_order_delivery(request, po_id):
 
 @role_required("ADMIN")
 def admin_payout_list(request):
-    orders = PurchaseOrder.objects.filter(
-        status="DELIVERED", delivery_confirmed=True
-    ).select_related("supplier", "provider").prefetch_related("payouts").order_by("po_id")
-    return render(request, "orders/admin_payout_list.html", {"orders": orders})
+    eligible = PurchaseOrder.objects.filter(status="DELIVERED", delivery_confirmed=True)
+    if request.method == "POST" and request.POST.get("action") == "prepare":
+        created = 0
+        with transaction.atomic():
+            for order in eligible.select_for_update().select_related("supplier"):
+                _, was_created = Payout.objects.get_or_create(
+                    po=order,
+                    defaults={"supplier": order.supplier, "amount": order.total_amount, "status": "PENDING"},
+                )
+                created += int(was_created)
+        messages.success(request, f"Prepared {created} eligible supplier payout(s).")
+        return redirect("admin_payout_list")
+    pending = Payout.objects.filter(status="PENDING").select_related("supplier", "po", "po__provider").order_by("supplier__business_name", "created_at")
+    history = Payout.objects.exclude(status="PENDING").select_related("supplier", "po", "po__provider").order_by("-created_at")[:100]
+    supplier_totals = list(pending.values("supplier__supplier_id", "supplier__business_name").annotate(total=Sum("amount"), count=Count("payout_id")).order_by("supplier__business_name"))
+    return render(request, "orders/admin_payout_list.html", {
+        "eligible_count": eligible.exclude(payouts__isnull=False).count(),
+        "pending": pending, "history": history, "supplier_totals": supplier_totals,
+        "pending_total": pending.aggregate(total=Sum("amount"))["total"] or 0,
+    })
 
 
 @role_required("ADMIN")
@@ -240,9 +310,10 @@ def record_purchase_order_payment(request, po_id):
     if request.method != "POST":
         return redirect("purchase_order_detail", po_id=po_id)
 
+    action = request.POST.get("action", "paid")
     reference = request.POST.get("transfer_reference", "").strip()
-    if not reference or len(reference) > 100:
-        return redirect("purchase_order_detail", po_id=po_id)
+    if action not in {"paid", "failed", "retry"} or (action in {"paid", "failed"} and not reference) or len(reference) > 100:
+        return redirect("admin_payout_list")
 
     with transaction.atomic():
         order = get_object_or_404(
@@ -250,16 +321,21 @@ def record_purchase_order_payment(request, po_id):
             po_id=po_id,
         )
         if order.status == "DELIVERED" and order.delivery_confirmed:
-            Payout.objects.get_or_create(
+            payout, created = Payout.objects.get_or_create(
                 po=order,
-                defaults={
-                    "supplier": order.supplier,
-                    "amount": order.total_amount,
-                    "status": "PAID",
-                    "transfer_reference": reference,
-                },
+                defaults={"supplier": order.supplier, "amount": order.total_amount, "status": "PENDING"},
             )
-    return redirect("purchase_order_detail", po_id=po_id)
+            payout = Payout.objects.select_for_update().get(pk=payout.pk)
+            if action == "paid" and payout.status == "PENDING":
+                payout.status, payout.transfer_reference = "PAID", reference
+                payout.save(update_fields=["status", "transfer_reference"])
+            elif action == "failed" and payout.status == "PENDING":
+                payout.status, payout.transfer_reference = "FAILED", reference
+                payout.save(update_fields=["status", "transfer_reference"])
+            elif action == "retry" and payout.status == "FAILED":
+                payout.status, payout.transfer_reference = "PENDING", ""
+                payout.save(update_fields=["status", "transfer_reference"])
+    return redirect("admin_payout_list")
 
 
 @role_required("SUPPLIER")

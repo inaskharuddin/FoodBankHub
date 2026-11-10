@@ -1,14 +1,24 @@
-{% load static %}
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#023020"><title>Supplier registration · FoodBankHub</title><link rel="stylesheet" href="{% static 'css/supplier.css' %}"></head>
-<body class="supplier-app"><main class="auth-page"><aside class="auth-aside"><a class="auth-brand" href="{% url 'login' %}"><span class="brand-mark">F</span><span>FoodBankHub</span></a><div class="auth-message"><span class="auth-tag">Supplier onboarding</span><h1>Grow your impact through better food access.</h1><p>Register your business to connect with food banks and support local communities.</p></div><span class="auth-foot">FoodBankHub Supplier Portal · Secure account review</span></aside><section class="auth-content"><div class="auth-card"><a class="auth-back" href="{% url 'login' %}">← Back to sign in</a>
-{% if submitted %}<div class="approval-card"><span class="approval-mark">✓</span><div><h2>Application submitted</h2><p>Your account is waiting for admin approval. We’ll email you when your supplier account is ready.</p></div></div><div class="form-actions"><a class="btn btn-gold" href="{% url 'login' %}">Return to sign in</a></div>
-{% else %}<h2>Create supplier account</h2><p>Share your business details and license. You can sign in after an admin approves your application.</p>{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
-<form method="post" enctype="multipart/form-data" action="{% url 'supplier_register' %}">{% csrf_token %}
-  <div class="form-grid"><div class="field"><label for="contact-name">Your name</label><input id="contact-name" name="name" autocomplete="name" required></div><div class="field"><label for="email">Business email</label><input id="email" type="email" name="email" autocomplete="email" required></div>
-  <div class="field span-2"><label for="business-name">Business name</label><input id="business-name" name="business_name" maxlength="200" required></div>
-  <div class="field"><label for="registration">BR registration number</label><input id="registration" name="ssm_registration_no" maxlength="50" required></div><div class="field"><label for="contact-person">Contact person</label><input id="contact-person" name="contact_person" maxlength="100" required></div>
-  <div class="field"><label for="phone">Phone number</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div><div class="field"><label for="bank-name">Bank name</label><input id="bank-name" name="bank_name" maxlength="100" required></div>
-  <div class="field"><label for="bank-account">Bank account number</label><input id="bank-account" name="bank_account" inputmode="numeric" maxlength="50" required></div><div class="field"><label for="password">Password</label><input id="password" type="password" name="password" autocomplete="new-password" required></div>
-  <div class="field span-2"><label for="license">Business license (PDF, PNG, JPG)</label><input id="license" type="file" name="business_license" accept=".pdf,.png,.jpg,.jpeg" required></div></div>
-  <div class="form-actions"><button class="btn btn-gold" type="submit">Submit for approval</button></div>
-</form>{% endif %}</div></section></main></body></html>
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#174637"><link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=20261110-register-8"><script defer src="{% static 'js/form_validation.js' %}?v=3"></script><title>Supplier registration · FoodBankHub</title></head>
+<body class="provider-body account-register-page"><main class="account-register-layout">
+  <aside class="account-register-aside"><img src="{% static 'images/login-foodbank.png' %}" alt="Food bank pantry ready for supplier deliveries"><div class="register-photo-brand"><span>FH</span> FOODBANKHUB</div><div class="register-photo-copy"><span>SUPPLIER PARTNERS</span><h2>Better supply.<br>Greater impact.</h2><p>Connect your business with food banks working to meet local needs.</p></div></aside>
+  <section class="account-register-panel"><a class="register-back-link" href="{% url 'login' %}">← Back to sign in</a>
+    <div class="register-panel-heading"><span class="register-kicker">SUPPLIER REGISTRATION</span><h1>Register your business</h1><p>Submit your company details and license for administrator review.</p></div>
+    {% if submitted %}<div class="register-success" role="status"><span class="register-success-mark">✓</span><div><h2>Application submitted</h2><p>Your account is waiting for administrator approval. We’ll email you when it is ready.</p><a href="{% url 'login' %}">Return to sign in</a></div></div>
+    {% else %}{% if error %}<div class="register-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" enctype="multipart/form-data" action="{% url 'supplier_register' %}" class="account-register-form">
+      {% csrf_token %}
+      <label>Business name<input name="business_name" maxlength="200" autocomplete="organization" required></label>
+      <label>SSM registration number<input name="ssm_registration_no" maxlength="50" required></label>
+      <label>Contact person name<input name="contact_person" maxlength="100" autocomplete="name" required></label>
+      <label>Email address<input type="email" name="email" autocomplete="email" required></label>
+      <label>Phone number<input type="tel" name="phone" autocomplete="tel" required></label>
+      <label>Bank name<input name="bank_name" maxlength="100" autocomplete="off" required></label>
+      <label>Bank account number<input name="bank_account" inputmode="numeric" maxlength="50" autocomplete="off" required></label>
+      <label>Business license<input type="file" name="business_license" accept=".pdf,.png,.jpg,.jpeg" required><small>PDF, PNG, or JPG</small></label>
+      <label class="field-wide">Password<input type="password" name="password" autocomplete="new-password" required></label>
+      <button class="field-wide" type="submit">Submit supplier registration <span aria-hidden="true">→</span></button>
+    </form>{% endif %}
+    <p class="register-login-prompt">Already registered? <a href="{% url 'login' %}">Sign in</a></p>
+  </section>
+</main></body></html>

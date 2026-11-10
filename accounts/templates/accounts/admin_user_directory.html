@@ -1,0 +1,15 @@
+{% extends 'accounts/admin_base.html' %}
+{% load static %}
+{% block title %}All users{% endblock %}
+{% block topbar_title %}All users{% endblock %}
+{% block content %}
+<section class="admin-hero"><div><span class="eyebrow-green">ACCOUNT DIRECTORY</span><h1>All users</h1><p>Browse provider, needy, donor, supplier, and administrator accounts in one place.</p></div><a class="button button-secondary" href="{% url 'admin_dashboard' %}">Back to overview</a></section>
+<section class="admin-section"><h2>{{ result_count }} account{{ result_count|pluralize }}</h2>
+<form method="get" class="admin-user-filters"><label for="user-search">Search by name or email</label><input id="user-search" type="search" name="q" value="{{ search }}" placeholder="Enter a name or email"><label for="user-role">Role</label><select id="user-role" name="role"><option value="">All roles</option>{% for role_value, role_label in role_choices %}<option value="{{ role_value }}" {% if selected_role == role_value %}selected{% endif %}>{{ role_label }}</option>{% endfor %}</select><button type="submit">Apply filters</button>{% if search or selected_role %}<a class="button button-secondary" href="{% url 'admin_user_directory' %}">Clear</a>{% endif %}</form>
+<div class="admin-table-wrap"><table class="admin-table admin-user-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+{% for account in user_page %}<tr data-user-row data-account-name="{{ account.name }}"><td data-label="Name"><strong>{{ account.name }}</strong></td><td data-label="Email">{{ account.email }}</td><td data-label="Role">{{ account.get_role_display }}</td><td data-label="Status">{% if account.is_active and account.status == "ACTIVE" %}<span class="admin-badge">Active</span>{% else %}<span class="admin-badge is-warning">{{ account.get_status_display }}{% if not account.is_active %} · Disabled{% endif %}</span>{% endif %}</td><td data-label="Actions"><div class="admin-user-actions"><a class="admin-user-button" href="{% url 'admin_user_detail' account.pk %}">View Details</a></div></td></tr>
+{% empty %}<tr><td colspan="5">No accounts match these filters.</td></tr>{% endfor %}
+</tbody></table></div>
+{% if user_page.paginator.num_pages > 1 %}<nav class="admin-pagination" aria-label="User directory pages">{% if user_page.has_previous %}<a href="?q={{ search|urlencode }}&amp;role={{ selected_role|urlencode }}&amp;page={{ user_page.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ user_page.number }} of {{ user_page.paginator.num_pages }}</span>{% if user_page.has_next %}<a href="?q={{ search|urlencode }}&amp;role={{ selected_role|urlencode }}&amp;page={{ user_page.next_page_number }}">Next</a>{% endif %}</nav>{% endif %}
+</section>
+{% endblock %}
