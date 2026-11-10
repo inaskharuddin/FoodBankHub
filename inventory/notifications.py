@@ -57,7 +57,7 @@ def email_new_low_stock_alerts(provider, alerts, forecast_days):
             f"{alert['name']} ({alert['category']})",
             f"Current stock: {alert['current_stock']} {alert['unit']}",
             f"Forecast demand: {alert['forecast_demand']} {alert['unit']}",
-            f"Required stock with 20% buffer: {alert['required_stock']} {alert['unit']}",
+            f"Required stock with 10% buffer: {alert['required_stock']} {alert['unit']}",
             f"Suggested order: {alert['suggested_order']} {alert['unit']}",
             "",
         ])

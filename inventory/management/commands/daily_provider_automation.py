@@ -28,7 +28,7 @@ def refresh_alerts(provider, days):
         demand = Decimal(by_item.get(row["item_id"], 0) or 0)
         stock = Decimal(row["current_stock"] or 0)
         threshold = Decimal(row["threshold_level"] or 0)
-        required = demand * Decimal("1.2")
+        required = demand * Decimal("1.1")
         shortage = max(Decimal("0"), required - stock)
         if shortage <= 0 and stock > threshold:
             continue
@@ -41,7 +41,7 @@ def refresh_alerts(provider, days):
             "shortage": shortage,
             "suggested_order": ceil(max(shortage, threshold - stock, Decimal("0"))),
             "priority": "HIGH" if coverage is not None and coverage < 48 else "NORMAL",
-            "reason": "Less than 48 hours of projected stock remains." if coverage is not None and coverage < 48 else "Forecast demand exceeds stock with 20% safety buffer or reached the stock threshold.",
+            "reason": "Less than 48 hours of projected stock remains." if coverage is not None and coverage < 48 else "Forecast demand exceeds stock with 10% safety buffer or reached the stock threshold.",
         })
     email_new_low_stock_alerts(provider, alerts, days)
 

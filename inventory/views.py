@@ -298,7 +298,7 @@ def low_stock_alerts(request):
         demand = Decimal(forecast_by_item.get(row["item_id"], 0) or 0)
         stock = Decimal(row["current_stock"] or 0)
         threshold = Decimal(row["threshold_level"] or 0)
-        required = (demand * Decimal("1.2")).quantize(Decimal("0.01"))
+        required = (demand * Decimal("1.1")).quantize(Decimal("0.01"))
         shortage = max(Decimal("0"), required - stock).quantize(Decimal("0.01"))
         if shortage > 0 or stock <= threshold:
             coverage_hours = (stock / (demand / Decimal(forecast_days)) * Decimal(24)) if demand > 0 else None

@@ -31,13 +31,15 @@ def sync_provider_urgent_needs(provider, days=7):
     }
     active_needs = {
         need.item_id: need for need in UrgentNeed.objects.filter(
-            provider=provider, status__in=["OPEN", "FUNDED", "UNAVAILABLE"],
+            provider=provider, status__in=["OPEN", "FUNDED", "UNAVAILABLE", "ORDERED"],
         )
     }
     dismissed_items = set(UrgentNeed.objects.filter(
         provider=provider, status="DISMISSED",
     ).values_list("item_id", flat=True))
     for need in active_needs.values():
+        if need.status == "ORDERED":
+            continue
         if need.item_id not in stock_by_item or need.item_id not in products:
             need.status = "UNAVAILABLE"
             need.remaining_quantity = 0
@@ -48,10 +50,12 @@ def sync_provider_urgent_needs(provider, days=7):
         product = products.get(row["item_id"])
         if not product:
             continue
-        buffered_demand = ceil(max(float(row["demand"] or 0), 0) * 1.2)
+        buffered_demand = ceil(max(float(row["demand"] or 0), 0) * 1.1)
         stock = int(stock_by_item.get(row["item_id"], 0) or 0)
         shortage = max(buffered_demand - stock, 0)
         need = active_needs.get(row["item_id"])
+        if need and need.status == "ORDERED":
+            continue
         if need and need.provider_managed:
             if stock >= need.required_quantity and need.status == "OPEN" and need.funded_quantity == 0:
                 need.status = "FULFILLED"

@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#174637">
-  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=20261110-signin-8">
-  <script defer src="{% static 'js/form_validation.js' %}?v=3"></script>
+  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=20261110-signin-9">
+  <script defer src="{% static 'js/form_validation.js' %}?v=4"></script>
   <title>Sign in · FoodBankHub</title>
 </head>
 <body class="provider-body auth-page login-page">
@@ -24,7 +24,7 @@
       {% if pending_approval %}<div class="login-pending-notice" role="status"><strong>Account awaiting approval</strong><p>{{ pending_approval }}</p></div>{% endif %}
       {% if messages %}<div class="login-pending-notice" role="status"><strong>Registration received</strong>{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
       {% if error %}<p class="login-error" role="alert">⚠ {{ error }}</p>{% endif %}
-      <form method="post" class="login-form">
+      <form method="post" class="login-form" novalidate>
         {% csrf_token %}
         <label for="login-email">Email address or phone number</label>
         <input id="login-email" type="text" name="email" value="{{ email|default:'' }}" placeholder="you@example.com or 0123456789" autocomplete="username" required>

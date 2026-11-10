@@ -17,11 +17,13 @@ def provider_urgent_needs(request):
 
     provider = request.user.provider_profile
     relationship = ProviderSupplier.objects.filter(provider=provider, status="ACTIVE").select_related("supplier").first()
-    needs = UrgentNeed.objects.filter(provider=provider).select_related("item").order_by("status", "item__name")
+    needs = UrgentNeed.objects.filter(provider=provider).exclude(status="ORDERED").select_related("item").order_by("status", "item__name")
     for need in needs:
         product = relationship.supplier.products.filter(item=need.item, status="ACTIVE").first() if relationship else None
         need.supplier_product_id = product.product_id if product else None
-        need.suggested_order_quantity = min(need.required_quantity, product.stock) if product else 0
+        need.has_funding = need.status in {"OPEN", "FUNDED"} and need.funded_quantity > 0
+        need.can_order = bool(product and need.has_funding and product.stock >= need.funded_quantity)
+        need.suggested_order_quantity = need.funded_quantity if need.can_order else 0
         need.progress_percent = int(need.funded_quantity * 100 / need.required_quantity) if need.required_quantity else 0
         need.can_edit = need.status in {"OPEN", "FUNDED", "UNAVAILABLE", "DISMISSED"}
         need.can_dismiss = (

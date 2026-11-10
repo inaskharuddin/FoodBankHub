@@ -25,6 +25,26 @@
   }
 
   forms.forEach((form) => {
+    if (form.matches('.login-form')) {
+      form.addEventListener('submit', (event) => {
+        const email = form.querySelector('[name="email"]');
+        const password = form.querySelector('[name="password"]');
+        const missingEmail = !email?.value.trim();
+        const missingPassword = !password?.value;
+        if (missingEmail || missingPassword) {
+          event.preventDefault();
+          if (missingEmail && missingPassword) {
+            window.alert('Please enter both your email address and password to log in.');
+          } else if (missingEmail) {
+            window.alert('Please enter your email address to log in.');
+          } else {
+            window.alert('Please enter your password to log in.');
+          }
+          (missingEmail ? email : password)?.focus();
+        }
+      });
+      return;
+    }
     const controls = Array.from(form.querySelectorAll('input, select, textarea')).filter((control) => !['hidden', 'submit', 'button', 'reset'].includes(control.type));
     const buttons = submitControls(form);
     const lockUntilValid = form.matches('.account-register-form, .login-form');

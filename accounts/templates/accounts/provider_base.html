@@ -5,9 +5,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Provider Portal{% endblock %} · FoodBankHub</title>
-  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=form-validation-senior-3">
+  <link rel="stylesheet" href="{% static 'css/provider_portal.css' %}?v=provider-nav-priority-2">
   <script defer src="{% static 'js/provider_portal.js' %}"></script>
-  <script defer src="{% static 'js/form_validation.js' %}?v=3"></script>
+  <script defer src="{% static 'js/form_validation.js' %}?v=4"></script>
+  <script defer src="{% static 'js/provider_onboarding.js' %}?v=6"></script>
 </head>
 <body class="provider-body">
   <div class="provider-shell">
@@ -20,18 +21,16 @@
       <nav class="provider-nav">
         <span class="nav-label">WORKSPACE</span>
         <a title="Dashboard" class="nav-link {% if request.resolver_match.url_name == 'provider_dashboard' %}is-active{% endif %}" href="{% url 'provider_dashboard' %}"><span class="nav-icon">⌂</span>Dashboard</a>
-        <a title="Profile management" class="nav-link {% if request.resolver_match.url_name == 'provider_settings' %}is-active{% endif %}" href="{% url 'provider_settings' %}"><span class="nav-icon">◉</span>Profile management</a>
-        <a title="Food inventory" class="nav-link {% if request.resolver_match.url_name == 'inventory_list' or request.resolver_match.url_name == 'inventory_add' or request.resolver_match.url_name == 'inventory_edit' %}is-active{% endif %}" href="{% url 'inventory_list' %}"><span class="nav-icon">▦</span>Food inventory</a>
-        <a title="Inventory monitoring" class="nav-link {% if request.resolver_match.url_name == 'low_stock_alerts' %}is-active{% endif %}" href="{% url 'low_stock_alerts' %}"><span class="nav-icon">◷</span>Inventory monitoring</a>
+        <a title="Food inventory" data-tour="nav-inventory" class="nav-link {% if request.resolver_match.url_name == 'inventory_list' or request.resolver_match.url_name == 'inventory_add' or request.resolver_match.url_name == 'inventory_edit' %}is-active{% endif %}" href="{% url 'inventory_list' %}"><span class="nav-icon">▦</span>Food inventory</a>
+        <a title="Inventory monitoring" data-tour="nav-alerts" class="nav-link {% if request.resolver_match.url_name == 'low_stock_alerts' %}is-active{% endif %}" href="{% url 'low_stock_alerts' %}"><span class="nav-icon">◷</span>Inventory monitoring</a>
+        <a title="Demand forecast" data-tour="nav-forecast" class="nav-link {% if request.resolver_match.url_name == 'historical_data' or request.resolver_match.url_name == 'view_forecast' %}is-active{% endif %}" href="{% url 'view_forecast' %}"><span class="nav-icon">⌁</span>Demand forecast</a>
         <a title="Urgent needs" class="nav-link {% if request.resolver_match.url_name == 'provider_urgent_needs' %}is-active{% endif %}" href="{% url 'provider_urgent_needs' %}"><span class="nav-icon">♡</span>Urgent needs</a>
+        <a title="Supplier orders" data-tour="nav-orders" class="nav-link {% if request.resolver_match.url_name == 'purchase_order_list' or request.resolver_match.url_name == 'purchase_order_detail' or request.resolver_match.url_name == 'purchase_order_create' %}is-active{% endif %}" href="{% url 'purchase_order_list' %}"><span class="nav-icon">▤</span>Supplier orders</a>
         <a title="Donation monitoring" class="nav-link {% if request.resolver_match.url_name == 'provider_donation_monitoring' %}is-active{% endif %}" href="{% url 'provider_donation_monitoring' %}"><span class="nav-icon">♥</span>Donation monitoring</a>
-        <a title="Supplier orders" class="nav-link {% if request.resolver_match.url_name == 'purchase_order_list' or request.resolver_match.url_name == 'purchase_order_detail' or request.resolver_match.url_name == 'purchase_order_create' %}is-active{% endif %}" href="{% url 'purchase_order_list' %}"><span class="nav-icon">▤</span>Supplier orders</a>
-        <a title="Demand forecast" class="nav-link {% if request.resolver_match.url_name == 'historical_data' or request.resolver_match.url_name == 'view_forecast' %}is-active{% endif %}" href="{% url 'view_forecast' %}"><span class="nav-icon">⌁</span>Demand forecast</a>
         <a title="Reports" class="nav-link {% if request.resolver_match.url_name == 'provider_reports' or request.resolver_match.url_name == 'provider_daily_summary' or request.resolver_match.url_name == 'needy_usage_report' %}is-active{% endif %}" href="{% url 'provider_reports' %}"><span class="nav-icon">▥</span>Reports</a>
-        <a title="Service areas" class="nav-link {% if request.resolver_match.url_name == 'service_area_manage' %}is-active{% endif %}" href="{% url 'service_area_manage' %}"><span class="nav-icon">⌖</span>Service areas</a>
         <a title="Log out" class="nav-link logout-link" href="{% url 'logout' %}"><span class="nav-icon">↪</span>Log out</a>
       </nav>
-      <div class="sidebar-footer"><span class="avatar avatar-small">{{ request.user.name|first|upper }}</span><span><strong>{{ request.user.name }}</strong><small>{{ provider.food_bank_name|default:request.user.email }}</small></span></div>
+      <a class="sidebar-footer profile-sidebar-link" href="{% url 'provider_settings' %}" aria-label="Open profile management"><span class="avatar avatar-small">{{ request.user.name|first|upper }}</span><span><strong>{{ request.user.name }}</strong><small>{{ request.user.email }}</small></span></a>
     </aside>
     <div class="provider-main">
       <header class="provider-topbar">
@@ -46,5 +45,27 @@
       <footer class="provider-footer">FoodBankHub · Provider Portal <span>Food distribution, managed together.</span></footer>
     </div>
   </div>
+  <div id="provider-tour-config" hidden
+    data-completed="{{ request.user.provider_tour_completed|yesno:'true,false' }}"
+    data-auto-start="{% if request.resolver_match.url_name == 'provider_dashboard' %}true{% else %}false{% endif %}"
+    data-dashboard-url="{% url 'provider_dashboard' %}"
+    data-inventory-url="{% url 'provider_dashboard' %}"
+    data-supplier-url="{% url 'provider_settings' %}#supplier-panel"
+    data-history-url="{% url 'historical_data' %}#history-upload"
+    data-forecast-url="{% url 'view_forecast' %}"
+    data-forecast-chart-url="{% url 'view_forecast' %}#forecast-visual-section"
+    data-alerts-url="{% url 'low_stock_alerts' %}#stock-alert-list"
+    data-orders-url="{% url 'purchase_order_list' %}#purchase-order-create"
+    data-delivery-url="{% url 'purchase_order_list' %}#order-history"
+    data-qr-url="{% url 'provider_dashboard' %}"
+    data-complete-url="{% url 'provider_tour_complete' %}"></div>
+  <form id="provider-tour-csrf" hidden>{% csrf_token %}</form>
+  <div class="provider-tour-backdrop" data-tour-backdrop hidden></div>
+  <div class="provider-tour-spotlight" data-tour-spotlight hidden></div>
+  <section class="provider-tour-tooltip" data-tour-tooltip role="dialog" aria-modal="true" aria-labelledby="provider-tour-title" hidden>
+    <div class="provider-tour-heading"><span class="provider-tour-kicker">PROVIDER QUICK GUIDE</span><button type="button" class="provider-tour-close" data-tour-skip aria-label="Skip tour">×</button></div>
+    <p class="provider-tour-step-count" data-tour-count></p><h2 id="provider-tour-title" data-tour-title></h2><p data-tour-copy></p>
+    <div class="provider-tour-controls"><button type="button" class="button button-secondary" data-tour-back>Back</button><div><button type="button" class="provider-tour-skip" data-tour-skip>Skip tour</button><button type="button" class="button" data-tour-next>Next</button></div></div>
+  </section>
 </body>
 </html>

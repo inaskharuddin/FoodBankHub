@@ -43,22 +43,22 @@ def purchase_order_create(request):
 
     def add_funding_details(product_rows):
         needs = {}
-        for need in UrgentNeed.objects.filter(provider=provider, status="FUNDED").order_by("-created_at"):
+        for need in UrgentNeed.objects.filter(provider=provider, status__in=["OPEN", "FUNDED"]).order_by("-created_at"):
             needs.setdefault(need.item_id, need)
         for product in product_rows:
             need = needs.get(product.item_id)
             product.funded_need = need
+            funded_quantity = need.funded_quantity if need else 0
             product.orderable = bool(
-                need and need.required_quantity > 0
-                and need.funded_quantity >= need.required_quantity
-                and need.remaining_quantity == 0
-                and product.stock >= need.required_quantity
+                need and funded_quantity > 0
+                and need.status in {"OPEN", "FUNDED"}
+                and product.stock >= funded_quantity
             )
-            product.suggested_quantity = need.required_quantity if product.orderable else 0
-            if not need or need.funded_quantity < need.required_quantity:
-                product.order_block_reason = "Donor funding must reach 100% before ordering."
-            elif product.stock < need.required_quantity:
-                product.order_block_reason = f"Supplier stock is below the fully funded quantity ({product.stock} available)."
+            product.suggested_quantity = funded_quantity if product.orderable else 0
+            if not need or funded_quantity == 0:
+                product.order_block_reason = "A purchase order is available after donors complete at least one paid contribution."
+            elif product.stock < funded_quantity:
+                product.order_block_reason = f"Supplier stock is below the donor-funded quantity ({product.stock} available)."
             else:
                 product.order_block_reason = ""
         return product_rows
@@ -112,13 +112,13 @@ def purchase_order_create(request):
                 if not product:
                     continue
                 need = UrgentNeed.objects.select_for_update().filter(
-                    provider=provider, item=product.item, status="FUNDED",
+                    provider=provider, item=product.item, status__in=["OPEN", "FUNDED"],
                 ).order_by("-created_at").first()
-                if not need or need.required_quantity <= 0 or need.funded_quantity < need.required_quantity or need.remaining_quantity != 0:
-                    errors.append(f"{product.item.name}: donors must fund 100% of this need before it can be ordered.")
+                if not need or need.funded_quantity <= 0:
+                    errors.append(f"{product.item.name}: a paid donor contribution is required before ordering.")
                     continue
-                if quantity != need.required_quantity:
-                    errors.append(f"{product.item.name}: order the fully funded quantity of {need.required_quantity} {product.item.unit}.")
+                if quantity != need.funded_quantity:
+                    errors.append(f"{product.item.name}: order the donor-funded quantity of {need.funded_quantity} {product.item.unit}.")
                 if quantity > product.stock:
                     errors.append(f"{product.item.name}: supplier stock is only {product.stock} {product.item.unit}.")
                 selected_needs.append(need)
@@ -231,6 +231,15 @@ def supplier_update_order_status(request, po_id):
                 order.status = "REJECTED"
                 order.rejection_reason = reason[:2000]
                 order.save(update_fields=["status", "rejection_reason"])
+                from donations.models import DonationOrderAllocation
+                DonationOrderAllocation.objects.filter(purchase_order_item__po=order).delete()
+                for item_id in order.items.values_list("product__item_id", flat=True).distinct():
+                    for need in UrgentNeed.objects.select_for_update().filter(
+                        provider=order.provider, item_id=item_id, status="ORDERED",
+                    ):
+                        need.remaining_quantity = max(need.required_quantity - need.funded_quantity, 0)
+                        need.status = "FUNDED" if need.remaining_quantity == 0 else "OPEN"
+                        need.save(update_fields=["remaining_quantity", "status"])
         elif order.status == "ACCEPTED" and action == "ship":
             order.status = "SHIPPED"
             order.tracking_number = request.POST.get("tracking_number", "").strip()[:100]

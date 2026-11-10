@@ -7,6 +7,8 @@ from django.core.mail import send_mail
 from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import Sum
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponseNotAllowed
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.urls import reverse
 from .models import User
@@ -679,6 +681,11 @@ def approve_supplier(request, supplier_id):
                 ),
                 from_email=None,
                 recipient_list=[supplier.user.email],
+                html_message=render_to_string("accounts/emails/account_approved.html", {
+                    "account_type": "Supplier", "organization_name": supplier.business_name,
+                    "recipient_name": supplier.contact_person, "account_email": supplier.user.email,
+                    "login_url": login_url,
+                }),
                 fail_silently=False,
             )
             messages.success(request, f"{supplier.business_name} was approved and an email notice was sent.")
@@ -734,6 +741,11 @@ def approve_provider(request, provider_id):
                 ),
                 from_email=None,
                 recipient_list=[provider.user.email],
+                html_message=render_to_string("accounts/emails/account_approved.html", {
+                    "account_type": "Provider", "organization_name": provider.food_bank_name,
+                    "recipient_name": provider.user.name, "account_email": provider.user.email,
+                    "login_url": login_url,
+                }),
                 fail_silently=False,
             )
             messages.success(request, f"{provider.food_bank_name} was approved and an email notice was sent.")
@@ -782,6 +794,25 @@ def supplier_license(request, supplier_id):
         from django.http import Http404
         raise Http404
     return FileResponse(supplier.business_license.open("rb"), as_attachment=False, filename=supplier.business_license.name.rsplit("/", 1)[-1])
+
+
+@role_required("PROVIDER")
+def provider_tour_complete(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    request.user.provider_tour_completed = True
+    request.user.save(update_fields=["provider_tour_completed"])
+    return JsonResponse({"ok": True})
+
+
+@role_required("PROVIDER")
+def provider_tour_restart(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    request.user.provider_tour_completed = False
+    request.user.save(update_fields=["provider_tour_completed"])
+    messages.success(request, "Your provider guide has restarted. Follow the steps to explore your dashboard.")
+    return redirect("provider_dashboard")
 
 
 @role_required("PROVIDER")

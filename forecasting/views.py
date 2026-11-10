@@ -190,12 +190,16 @@ def historical_data(request):
             for product in products:
                 for month_number, offset in enumerate((-3, -2, -1), start=1):
                     raw = request.POST.get(f"month_{month_number}_{product.product_id}", "").strip()
+                    if not raw:
+                        continue
                     quantity = int(raw)
                     if quantity < 0:
                         raise ValueError
                     entries.append((product, _month_start(offset), quantity))
+            if not entries:
+                raise ValueError
         except (TypeError, ValueError):
-            return _error(request, "Enter a whole number of zero or more for each product and month.", supplier_relationship, products, history)
+            return _error(request, "Enter at least one estimate, using whole numbers of zero or more. Leave months you do not know blank.", supplier_relationship, products, history)
 
         with transaction.atomic():
             for product, period, quantity in entries:
@@ -211,7 +215,7 @@ def historical_data(request):
                         "supplier": supplier_relationship.supplier,
                     },
                 )
-        messages.success(request, "Your three-month estimated baseline has been saved.")
+        messages.success(request, f"Saved {len(entries)} estimated monthly record(s). You can add more data whenever it becomes available.")
         return redirect("historical_data")
 
     return _render_page(request, supplier_relationship, products, history)

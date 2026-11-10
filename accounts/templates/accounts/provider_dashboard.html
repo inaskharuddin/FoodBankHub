@@ -3,7 +3,7 @@
 {% block content %}
 <section class="page-heading">
   <div><span class="eyebrow-green">YOUR FOOD BANK</span><h1>Good day, {{ request.user.name|truncatewords:2 }}</h1><p>Here’s the latest activity for {{ provider.food_bank_name }}.</p></div>
-  <div class="heading-actions"><a class="button button-secondary" href="{% url 'view_forecast' %}">View forecast</a><a class="button" href="{% url 'inventory_add' %}">＋ Add inventory</a></div>
+  <div class="heading-actions"><form method="post" action="{% url 'provider_tour_restart' %}" data-tour-restart-form>{% csrf_token %}<button class="button button-tour" type="submit">Application tour</button></form><a class="button button-secondary" href="{% url 'view_forecast' %}">View forecast</a><a class="button" href="{% url 'inventory_add' %}">＋ Add inventory</a></div>
 </section>
 
 {% if low_stock_count %}<div class="notice notice-warning status-callout"><span class="callout-icon">!</span><div><strong>{{ low_stock_count }} inventory item{{ low_stock_count|pluralize }} at or below threshold</strong><p>Review stock alerts and decide whether to create a supplier order.</p></div><a class="button button-secondary" href="{% url 'low_stock_alerts' %}">Review alerts</a></div>{% endif %}
@@ -23,7 +23,7 @@
     <a class="quick-action" href="{% url 'provider_urgent_needs' %}"><span class="quick-action-icon">♡</span><span>Donor needs</span><small>Track funding progress</small></a>
     <a class="quick-action" href="{% url 'purchase_order_list' %}"><span class="quick-action-icon">▤</span><span>Supplier orders</span><small>Create and track purchase orders</small></a>
     <a class="quick-action" href="{% url 'view_forecast' %}"><span class="quick-action-icon">⌁</span><span>Demand forecast</span><small>Plan for the next 7 or 30 days</small></a>
-    <a class="quick-action" href="{% url 'provider_self_report_qr' %}"><span class="quick-action-icon">▧</span><span>Get reporting QR</span><small>Let Needy users report distributions</small></a>
+    <a class="quick-action" href="{% url 'provider_self_report_qr' %}" data-tour="needy-report-qr"><span class="quick-action-icon">▧</span><span>Get reporting QR</span><small>Print and display it so Needy users can report distributions</small></a>
   </div>
 </section>
 
